@@ -1,1 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My Finance</title>
 
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #f6f7fb;
+  margin: 0;
+}
+.container {
+  max-width: 480px;
+  margin: auto;
+  padding: 20px;
+}
+.balance {
+  background: #ff8fb1;
+  color: white;
+  padding: 25px;
+  border-radius: 20px;
+  text-align: center;
+}
+.list .item {
+  background: white;
+  padding: 12px;
+  margin-top: 10px;
+  border-radius: 12px;
+}
+.income { color: green; }
+.expense { color: red; }
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<select id="month"></select>
+<select id="year"></select>
+
+<div class="balance">
+  <h1 id="balance">...</h1>
+  <div>
+    Income: <span id="income"></span> |
+    Expense: <span id="expense"></span>
+  </div>
+</div>
+
+<div class="list" id="list"></div>
+
+</div>
+
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbxQnL7-GXU1OkQHzptJ6OOm2FrrvIgyeifNGtt_K2OFqWggWXB0SUsYfQvFoPeU4agXXw/exec";
+
+const monthSel = document.getElementById("month");
+const yearSel = document.getElementById("year");
+
+const now = new Date();
+for (let m=1;m<=12;m++) monthSel.innerHTML += `<option>${m}</option>`;
+for (let y=now.getFullYear();y>=2024;y--) yearSel.innerHTML += `<option>${y}</option>`;
+
+monthSel.value = now.getMonth()+1;
+yearSel.value = now.getFullYear();
+
+monthSel.onchange = yearSel.onchange = load;
+
+function load() {
+  fetch(`${API_URL}?year=${yearSel.value}&month=${monthSel.value}`)
+    .then(r => r.json())
+    .then(render);
+}
+
+function render(d) {
+  document.getElementById("balance").innerText = d.balance.toLocaleString()+" ฿";
+  document.getElementById("income").innerText = d.income;
+  document.getElementById("expense").innerText = d.expense;
+
+  document.getElementById("list").innerHTML =
+    d.list.reverse().map(i => `
+      <div class="item">
+        ${i.date} |
+        <span class="${i.amount>=0?'income':'expense'}">
+          ${i.amount}
+        </span><br>
+        ${i.category} - ${i.description}
+      </div>
+    `).join("");
+}
+
+load();
+</script>
+</body>
+</html>
