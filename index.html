@@ -1,95 +1,167 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title> Series Budget 💸💸 </title>
+<meta charset="UTF-8">
+<title>My Finance</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body {
-  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-  background: #f6f7fb;
-  margin: 0;
+*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+body{background:#f6f7fb;color:#222}
+.app{max-width:480px;margin:0 auto;padding:16px}
+
+/* ===== BALANCE ===== */
+.balance-card{
+  background:#fff;border-radius:22px;padding:26px 20px;
+  text-align:center;box-shadow:0 10px 25px rgba(0,0,0,.06)
 }
-.container {
-  max-width: 480px;
-  margin: auto;
-  padding: 20px;
+.balance-label{font-size:14px;color:#777}
+.balance-amount{font-size:44px;font-weight:800;margin:10px 0}
+.summary{display:flex;gap:10px}
+.summary-box{
+  flex:1;background:#f4f6fa;border-radius:14px;padding:12px;font-size:13px
 }
-.balance {
-  background: #ff8fb1;
-  color: white;
-  padding: 25px;
-  border-radius: 20px;
-  text-align: center;
+.income{color:#2e7d32;font-weight:600}
+.expense{color:#c62828;font-weight:600}
+
+/* ===== FILTER ===== */
+.filters{display:flex;gap:10px;margin:16px 0}
+select,button{
+  flex:1;padding:10px;border-radius:12px;border:1px solid #ddd;
+  background:#fff;font-size:14px
 }
-.list .item {
-  background: white;
-  padding: 12px;
-  margin-top: 10px;
-  border-radius: 12px;
+.toggle button.active{background:#222;color:#fff}
+
+/* ===== LIST ===== */
+.list .item{
+  background:#fff;border-radius:14px;padding:12px;
+  margin-bottom:10px;display:flex;justify-content:space-between
 }
-.income { color: green; }
-.expense { color: red; }
+.item .sub{font-size:12px;color:#666}
+
+/* ===== GOAL ===== */
+.goal{
+  background:#fff;border-radius:18px;padding:16px;margin-top:20px
+}
+.progress{
+  height:10px;background:#eee;border-radius:10px;overflow:hidden;margin-top:8px
+}
+.progress-bar{height:100%;background:#4caf50;width:0%}
 </style>
 </head>
 
 <body>
-<div class="container">
+<div class="app">
 
-<select id="month"></select>
-<select id="year"></select>
-
-<div class="balance">
-  <h1 id="balance">...</h1>
-  <div>
-    Income: <span id="income"></span> |
-    Expense: <span id="expense"></span>
+  <!-- BALANCE -->
+  <div class="balance-card">
+    <div class="balance-label">Current Balance</div>
+    <div class="balance-amount" id="balance">฿0</div>
+    <div class="summary">
+      <div class="summary-box">Income<br><span id="income" class="income">฿0</span></div>
+      <div class="summary-box">Expense<br><span id="expense" class="expense">฿0</span></div>
+    </div>
   </div>
-</div>
 
-<div class="list" id="list"></div>
+  <!-- FILTER -->
+  <div class="filters">
+    <select id="monthSelect"></select>
+    <div class="toggle" style="display:flex;gap:6px">
+      <button id="monthlyBtn" class="active">Monthly</button>
+      <button id="dailyBtn">Daily</button>
+    </div>
+  </div>
+
+  <!-- DAILY SUMMARY -->
+  <div id="dailySummary" style="display:none;margin-bottom:10px;font-size:14px"></div>
+
+  <!-- LIST -->
+  <div class="list" id="list"></div>
+
+  <!-- GOAL -->
+  <div class="goal">
+    <strong>🎯 Tuition Goal</strong>
+    <div class="sub">Saved: <span id="goalSaved">0</span> / <span id="goalTotal">80,000</span></div>
+    <div class="progress"><div class="progress-bar" id="goalBar"></div></div>
+  </div>
 
 </div>
 
 <script>
+// ===== API URL ของคุณ =====
 const API_URL = "https://script.google.com/macros/s/AKfycbxQnL7-GXU1OkQHzptJ6OOm2FrrvIgyeifNGtt_K2OFqWggWXB0SUsYfQvFoPeU4agXXw/exec";
 
-const monthSel = document.getElementById("month");
-const yearSel = document.getElementById("year");
+let mode = "monthly", data;
 
-const now = new Date();
-for (let m=1;m<=12;m++) monthSel.innerHTML += `<option>${m}</option>`;
-for (let y=now.getFullYear();y>=2024;y--) yearSel.innerHTML += `<option>${y}</option>`;
+// ===== Toggle Monthly / Daily =====
+const monthlyBtn = document.getElementById("monthlyBtn");
+const dailyBtn = document.getElementById("dailyBtn");
 
-monthSel.value = now.getMonth()+1;
-yearSel.value = now.getFullYear();
+monthlyBtn.onclick = () => switchMode("monthly");
+dailyBtn.onclick = () => switchMode("daily");
 
-monthSel.onchange = yearSel.onchange = load;
-
-function load() {
-  fetch(`${API_URL}?year=${yearSel.value}&month=${monthSel.value}`)
-    .then(r => r.json())
-    .then(render);
+function switchMode(m){
+  mode=m;
+  monthlyBtn.classList.toggle("active",m==="monthly");
+  dailyBtn.classList.toggle("active",m==="daily");
+  render();
 }
 
-function render(d) {
-  document.getElementById("balance").innerText = d.balance.toLocaleString()+" ฿";
-  document.getElementById("income").innerText = d.income;
-  document.getElementById("expense").innerText = d.expense;
+// ===== Fetch JSON จาก Google Apps Script =====
+fetch(API_URL)
+  .then(r=>r.json())
+  .then(j=>{
+    data=j;
+    initMonth();
+    render();
+  });
 
-  document.getElementById("list").innerHTML =
-    d.list.reverse().map(i => `
-      <div class="item">
-        ${i.date} |
-        <span class="${i.amount>=0?'income':'expense'}">
-          ${i.amount}
-        </span><br>
-        ${i.category} - ${i.description}
-      </div>
-    `).join("");
+// ===== Init Month Dropdown =====
+function initMonth(){
+  monthSelect.innerHTML = `<option>${data.month}/${data.year}</option>`;
 }
 
-load();
+// ===== Render หน้าเว็บ =====
+function render(){
+  document.getElementById("balance").textContent = "฿"+data.balance.toLocaleString();
+  document.getElementById("income").textContent  = "฿"+data.income.toLocaleString();
+  document.getElementById("expense").textContent = "฿"+Math.abs(data.expense).toLocaleString();
+
+  const listEl = document.getElementById("list");
+  listEl.innerHTML="";
+
+  const dailySummaryEl = document.getElementById("dailySummary");
+  if(mode==="monthly"){
+    dailySummaryEl.style.display="none";
+    data.list.forEach(addItem);
+  }else{
+    dailySummaryEl.style.display="block";
+    dailySummaryEl.textContent = `Today: +${data.daily.income} / -${data.daily.expense}`;
+    data.daily.list.forEach(addItem);
+  }
+
+  // Goal
+  const saved = data.income + data.expense;
+  const total = 80000;
+  document.getElementById("goalSaved").textContent = saved.toLocaleString();
+  document.getElementById("goalTotal").textContent = total.toLocaleString();
+  document.getElementById("goalBar").style.width = Math.min(saved/total*100,100)+"%";
+}
+
+// ===== Add Item =====
+function addItem(i){
+  const el=document.createElement("div");
+  el.className="item";
+  el.innerHTML=`
+    <div>
+      <div>📅 ${i.date}</div>
+      <div class="sub">${i.category} · ${i.description}</div>
+    </div>
+    <div class="${i.amount>0?"income":"expense"}">
+      ${i.amount>0?"+":""}${i.amount}
+    </div>`;
+  document.getElementById("list").appendChild(el);
+}
 </script>
 </body>
 </html>
