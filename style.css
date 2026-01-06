@@ -1,0 +1,89 @@
+* {
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: #f6f7fb;
+  color: #111;
+}
+
+#app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+main {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+/* BALANCE */
+.balance {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.balance h1 {
+  font-size: 42px;
+  margin: 0;
+}
+
+.balance small {
+  color: #777;
+}
+
+/* CARD */
+.card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 16px;
+  margin-top: 16px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.04);
+}
+
+/* TRANSACTION */
+.tx {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 12px;
+}
+
+.tx .left {
+  font-size: 14px;
+}
+
+.tx .right {
+  font-weight: 600;
+}
+
+.plus {
+  color: #2ecc71;
+}
+
+.minus {
+  color: #e74c3c;
+}
+
+/* BOTTOM NAV */
+.bottom-nav {
+  height: 70px;
+  background: #fff;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  border-top: 1px solid #ddd;
+}
+
+.bottom-nav button {
+  background: none;
+  border: none;
+  font-size: 22px;
+}
+
+.home-btn {
+  font-size: 30px;
+}
