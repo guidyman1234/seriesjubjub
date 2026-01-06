@@ -1,152 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>My Finance App</title>
-<style>
-body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f5f5f5; }
-.container { max-width:480px; margin:auto; padding:10px; }
-
-.tab { display:none; }
-.active-tab { display:block; }
-
-.balance { text-align:center; font-size:2rem; font-weight:bold; margin:20px 0; }
-
-.goal-bar { margin:20px 0; }
-.goal-label { display:flex; justify-content:space-between; margin-bottom:5px; font-size:0.9rem;}
-.progress-container { background:#ddd; height:20px; border-radius:10px; }
-.progress { height:100%; background:#4caf50; border-radius:10px; width:0%; transition:width 0.5s; }
-
-.transactions { margin-top:20px; max-height:300px; overflow-y:auto; }
-.transaction { display:flex; justify-content:space-between; background:#fff; padding:10px; margin-bottom:5px; border-radius:5px; }
-.transaction-left { display:flex; flex-direction:column; }
-.transaction-date { font-size:0.8rem; color:#888; }
-.transaction-desc { font-size:0.9rem; }
-.transaction-right { font-weight:bold; }
-.income { color:green; }
-.expense { color:red; }
-
-.bottom-nav { display:flex; justify-content:space-around; position:fixed; bottom:0; left:0; right:0; background:#fff; padding:10px 0; border-top:1px solid #ccc; }
-.nav-btn { text-align:center; font-size:0.9rem; cursor:pointer; }
-.nav-btn i { display:block; font-size:1.5rem; margin-bottom:2px; }
-.nav-btn.active i { color:#4caf50; }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Finance</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-<div class="container">
 
-  <!-- Home -->
-  <div id="home" class="tab active-tab">
-    <div class="balance" id="balance">Loading...</div>
-    <div class="goal-bar">
-      <div class="goal-label">
-        <span>Goal: $<span id="goalAmount">0</span></span>
-        <span>Saved: $<span id="savedAmount">0</span></span>
-      </div>
-      <div class="progress-container">
-        <div class="progress" id="goalProgress"></div>
-      </div>
-    </div>
-    <div class="transactions" id="transactionListHome"></div>
-  </div>
+<div id="app">
 
-  <!-- Fund -->
-  <div id="fund" class="tab">
-    <div class="balance" id="fundBalance">Loading...</div>
-    <div class="transactions" id="transactionListFund"></div>
-  </div>
+  <!-- CONTENT -->
+  <main id="content"></main>
 
-  <!-- Analytics -->
-  <div id="analytics" class="tab">
-    <div class="balance">Analytics</div>
-    <canvas id="chartCanvas" width="400" height="300"></canvas>
-  </div>
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <button onclick="showFund()">💰</button>
+    <button class="home-btn" onclick="showHome()">●</button>
+    <button onclick="showAnalytics()">📊</button>
+  </nav>
 
 </div>
 
-<div class="bottom-nav">
-  <div class="nav-btn" onclick="switchTab('fund')" id="btnFund"><i>💰</i>Fund</div>
-  <div class="nav-btn active" onclick="switchTab('home')" id="btnHome"><i>🏠</i>Home</div>
-  <div class="nav-btn" onclick="switchTab('analytics')" id="btnAnalytics"><i>📊</i>Analytics</div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-function switchTab(tabId){
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active-tab'));
-  document.getElementById(tabId).classList.add('active-tab');
-  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById('btn'+tabId.charAt(0).toUpperCase()+tabId.slice(1)).classList.add('active');
-}
-
-// === Fetch real API data ===
-const API_URL = "https://script.googleusercontent.com/macros/echo?user_content_key=AehSKLjSJyb_PkEO33VbhQ8mI0JOjE82BVEvj4DP__CfL2r3DABorUgyIDVoJVXPOOPnKTKsdE059hsyHc7ueTzbhEWSoAbvblCQc8YDUZWtTaM2rqCbMPAak52GFdfFbdzZzOCyGk2q-fhsXkLlj8GjwS15UAEUYklc38HsNu6obxT4U_U72pKbXxhO2Ibpp9E3HDa2EQQlv1flhQ9Br5FiO82L41HfJeh_L6pSzl63QonHTIA1xUfLfhDk5QoFNT6nCYL9B6SXlah4trToX3wbj_OMQje6Pf_Z0sg4lMXU&lib=MGPia9bE9TkfA3OrwN0IS3DEJmSfWjFl0";
-
-fetch(API_URL)
-  .then(res=>res.json())
-  .then(data=>{
-    console.log("API data:", data);
-
-    // Home
-    document.getElementById('balance').textContent = `$${data.balance.toLocaleString()}`;
-    document.getElementById('goalAmount').textContent = data.goal?.toLocaleString() ?? '0';
-    document.getElementById('savedAmount').textContent = data.balance.toLocaleString();
-    document.getElementById('goalProgress').style.width = Math.min(100,(data.balance/data.goal*100))+'%';
-
-    const txHome = document.getElementById('transactionListHome');
-    txHome.innerHTML = '';
-    (data.list||[]).forEach(tx=>{
-      const div = document.createElement('div');
-      div.className='transaction';
-      div.innerHTML=`<div class="transaction-left">
-        <span class="transaction-date">${tx.date}</span>
-        <span class="transaction-desc">${tx.category}: ${tx.description}</span>
-      </div>
-      <div class="transaction-right ${tx.type==="Income"?"income":"expense"}">
-        ${tx.type==="Income"?"+":"-"}$${Math.abs(tx.amount).toLocaleString()}
-      </div>`;
-      txHome.appendChild(div);
-    });
-
-    // Fund
-    const fundTotal = (data.fundTransactions||[]).reduce((a,v)=>a+v.amount,0);
-    document.getElementById('fundBalance').textContent = `$${fundTotal.toLocaleString()}`;
-    const txFund = document.getElementById('transactionListFund');
-    txFund.innerHTML = '';
-    (data.fundTransactions||[]).forEach(tx=>{
-      const div = document.createElement('div');
-      div.className='transaction';
-      div.innerHTML=`<div class="transaction-left">
-        <span class="transaction-date">${tx.date}</span>
-        <span class="transaction-desc">${tx.category}: ${tx.description}</span>
-      </div>
-      <div class="transaction-right ${tx.type==="Income"?"income":"expense"}">
-        ${tx.type==="Income"?"+":"-"}$${Math.abs(tx.amount).toLocaleString()}
-      </div>`;
-      txFund.appendChild(div);
-    });
-
-    // Analytics Chart
-    const ctx = document.getElementById('chartCanvas').getContext('2d');
-    new Chart(ctx,{
-      type:'bar',
-      data:{
-        labels: (data.list||[]).map(t=>t.date),
-        datasets:[{
-          label:'Income',
-          data:(data.list||[]).map(t=>t.type==="Income"?t.amount:0),
-          backgroundColor:'green'
-        },{
-          label:'Expense',
-          data:(data.list||[]).map(t=>t.type==="Expense"?Math.abs(t.amount):0),
-          backgroundColor:'red'
-        }]
-      },
-      options:{responsive:true, maintainAspectRatio:false}
-    });
-  })
-  .catch(err=>console.error("API fetch error:", err));
-</script>
+<script src="app.js"></script>
 </body>
 </html>
