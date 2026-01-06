@@ -5,32 +5,32 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>My Finance App</title>
 <style>
-  body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f5f5f5; }
-  .container { max-width:480px; margin:auto; padding:10px; }
+body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f5f5f5; }
+.container { max-width:480px; margin:auto; padding:10px; }
 
-  .tab { display:none; }
-  .active-tab { display:block; }
+.tab { display:none; }
+.active-tab { display:block; }
 
-  .balance { text-align:center; font-size:2rem; font-weight:bold; margin:20px 0; }
+.balance { text-align:center; font-size:2rem; font-weight:bold; margin:20px 0; }
 
-  .goal-bar { margin:20px 0; }
-  .goal-label { display:flex; justify-content:space-between; margin-bottom:5px; font-size:0.9rem;}
-  .progress-container { background:#ddd; height:20px; border-radius:10px; }
-  .progress { height:100%; background:#4caf50; border-radius:10px; width:0%; transition:width 0.5s; }
+.goal-bar { margin:20px 0; }
+.goal-label { display:flex; justify-content:space-between; margin-bottom:5px; font-size:0.9rem;}
+.progress-container { background:#ddd; height:20px; border-radius:10px; }
+.progress { height:100%; background:#4caf50; border-radius:10px; width:0%; transition:width 0.5s; }
 
-  .transactions { margin-top:20px; max-height:300px; overflow-y:auto; }
-  .transaction { display:flex; justify-content:space-between; background:#fff; padding:10px; margin-bottom:5px; border-radius:5px; }
-  .transaction-left { display:flex; flex-direction:column; }
-  .transaction-date { font-size:0.8rem; color:#888; }
-  .transaction-desc { font-size:0.9rem; }
-  .transaction-right { font-weight:bold; }
-  .income { color:green; }
-  .expense { color:red; }
+.transactions { margin-top:20px; max-height:300px; overflow-y:auto; }
+.transaction { display:flex; justify-content:space-between; background:#fff; padding:10px; margin-bottom:5px; border-radius:5px; }
+.transaction-left { display:flex; flex-direction:column; }
+.transaction-date { font-size:0.8rem; color:#888; }
+.transaction-desc { font-size:0.9rem; }
+.transaction-right { font-weight:bold; }
+.income { color:green; }
+.expense { color:red; }
 
-  .bottom-nav { display:flex; justify-content:space-around; position:fixed; bottom:0; left:0; right:0; background:#fff; padding:10px 0; border-top:1px solid #ccc; }
-  .nav-btn { text-align:center; font-size:0.9rem; cursor:pointer; }
-  .nav-btn i { display:block; font-size:1.5rem; margin-bottom:2px; }
-  .nav-btn.active i { color:#4caf50; }
+.bottom-nav { display:flex; justify-content:space-around; position:fixed; bottom:0; left:0; right:0; background:#fff; padding:10px 0; border-top:1px solid #ccc; }
+.nav-btn { text-align:center; font-size:0.9rem; cursor:pointer; }
+.nav-btn i { display:block; font-size:1.5rem; margin-bottom:2px; }
+.nav-btn.active i { color:#4caf50; }
 </style>
 </head>
 <body>
@@ -81,7 +81,7 @@ function switchTab(tabId){
 }
 
 // === Fetch real API data ===
-const API_URL = "https://script.google.com/macros/s/AKfycby-beULXmZtgOGvT7iBbETSZt3GSFEyCVNLmwE51A0Lr1sLvbLb9zGQ5LNf9GDok2l9rg/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwBFHeMh5gfbMqluJu8JeKIg9CPLrbgbnhBBSw65q6X-hswKxwb5avD7bSvuogxlUlA1g/exec";
 
 fetch(API_URL)
   .then(res=>res.json())
@@ -110,7 +110,8 @@ fetch(API_URL)
     });
 
     // Fund
-    document.getElementById('fundBalance').textContent = `$${data.fundTransactions?.reduce((a,v)=>a+v.amount,0).toLocaleString() || 0}`;
+    const fundTotal = (data.fundTransactions||[]).reduce((a,v)=>a+v.amount,0);
+    document.getElementById('fundBalance').textContent = `$${fundTotal.toLocaleString()}`;
     const txFund = document.getElementById('transactionListFund');
     txFund.innerHTML = '';
     (data.fundTransactions||[]).forEach(tx=>{
@@ -128,7 +129,7 @@ fetch(API_URL)
 
     // Analytics Chart
     const ctx = document.getElementById('chartCanvas').getContext('2d');
-    const chart = new Chart(ctx,{
+    new Chart(ctx,{
       type:'bar',
       data:{
         labels: (data.list||[]).map(t=>t.date),
