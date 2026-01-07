@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fund Goal</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h2>Goal Tracker</h2>
+</header>
+
+<div class="summary">
+  <div>Saved: <span id="fund-saved">฿0</span> / Goal: <span id="fund-goal">฿50,000</span></div>
+  <progress id="fund-progress" value="0" max="50000"></progress>
+</div>
+
+<nav>
+  <button onclick="goHome()">🏠</button>
+  <button onclick="goAnalytics()">📊</button>
+</nav>
+
+<script src="main.js"></script>
+<script>
+initFund();
+</script>
+</body>
+</html>
