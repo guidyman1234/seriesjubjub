@@ -16,7 +16,7 @@ function sortLatestFirst(list) {
 // ------------------ HOME ------------------
 async function initHome() {
   globalData = await fetchData();
-  alert("ALL = " + (globalData?.all?.length || 0));
+ 
 
   document.getElementById("cumulative-balance").textContent =
     "฿" + globalData.cumulative.currentBalance.toLocaleString();
