@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transactions</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h2>Transactions</h2>
+  <select id="month-select"></select>
+  <select id="year-select"></select>
+</header>
+
+<div class="transactions" id="all-transaction-list"></div>
+
+<nav>
+  <button onclick="goFund()">💰</button>
+  <button onclick="goHome()">🏠</button>
+</nav>
+
+<script src="main.js"></script>
+<script>
+initTransactions();
+</script>
+</body>
+</html>
