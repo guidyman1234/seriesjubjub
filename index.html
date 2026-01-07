@@ -3,106 +3,36 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Personal Finance App</title>
+<title>Home Dashboard</title>
 <link rel="stylesheet" href="style.css">
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
+<header>
+  <h1 id="cumulative-balance">฿0</h1>
+</header>
 
-<!-- ===============================
-     HOME PAGE
-================================ -->
-<div id="page-home" class="page">
-  <header>
-    <h1 id="cumulative-balance">฿0</h1>
-  </header>
-
-  <div class="summary">
-    Income: <span id="monthly-income">฿0</span> |
-    Expense: <span id="monthly-expense">฿0</span> |
-    Balance: <span id="monthly-balance">฿0</span>
-  </div>
-
-  <div style="margin:10px">
-    <button class="btn-small" onclick="showPage('transactions')">ดูรายการทั้งหมด</button>
-  </div>
-
-  <div class="transactions scrollable" id="transaction-list"></div>
+<div class="summary">
+  Income: <span id="monthly-income">฿0</span> |
+  Expense: <span id="monthly-expense">฿0</span> |
+  Balance: <span id="monthly-balance">฿0</span>
 </div>
 
-<!-- ===============================
-     TRANSACTIONS PAGE
-================================ -->
-<div id="page-transactions" class="page" style="display:none">
-  <header>
-    <h2>Transactions</h2>
-    <div class="selects">
-      <select id="month-select"></select>
-      <select id="year-select"></select>
-      <button onclick="showPage('home')">กลับหน้า Home</button>
-    </div>
-  </header>
-
-  <div class="transactions scrollable" id="all-transaction-list"></div>
+<div style="margin:10px; text-align:center;">
+  <button class="btn-small" onclick="goTransactionsAll()">ดูรายการทั้งหมด</button>
 </div>
 
-<!-- ===============================
-     FUND PAGE
-================================ -->
-<div id="page-fund" class="page" style="display:none">
-  <header>
-    <h2>Goal Tracker</h2>
-  </header>
+<div class="transactions" id="transaction-list"></div>
 
-  <div class="summary">
-    <div>Saved: <span id="fund-saved">฿0</span> / Goal: <span id="fund-goal">฿50,000</span></div>
-    <progress id="fund-progress" value="0" max="50000"></progress>
-  </div>
-</div>
-
-<!-- ===============================
-     ANALYTICS PAGE
-================================ -->
-<div id="page-analytics" class="page" style="display:none">
-  <header>
-    <h2>Analytics</h2>
-    <div class="selects">
-      <select id="analytics-period">
-        <option value="daily">Daily</option>
-        <option value="monthly">Monthly</option>
-      </select>
-      <button onclick="showPage('home')">กลับหน้า Home</button>
-    </div>
-  </header>
-
-  <canvas id="analytics-chart"></canvas>
-</div>
-
-<!-- ===============================
-     NAVIGATION
-================================ -->
 <nav>
-  <button onclick="showPage('fund')">💰</button>
-  <button onclick="showPage('home')">🏠</button>
-  <button onclick="showPage('analytics')">📊</button>
+  <button onclick="goFund()">💰</button>
+  <button onclick="goHome()">🏠</button>
+  <button onclick="goAnalytics()">📊</button>
 </nav>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="main.js"></script>
 <script>
-  function showPage(page) {
-    document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
-    document.getElementById('page-' + page).style.display = 'block';
-
-    // เรียก init เฉพาะหน้า
-    if(page === 'home') initHome();
-    if(page === 'transactions') initTransactions();
-    if(page === 'fund') initFund();
-    if(page === 'analytics') initAnalytics();
-  }
-
-  // เริ่มต้นหน้า Home
-  showPage('home');
+initHome();
 </script>
-
 </body>
 </html>
