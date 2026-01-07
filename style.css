@@ -57,3 +57,23 @@ nav button {
   margin-bottom: 10px;
   border-radius: 5px;
 }
+.tx-row {
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
+  text-align: left;
+}
+
+.tx-date {
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 2px;
+}
+
+.tx-main {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+}
+
+.tx-amount.neg { color: #d9534f; }
+.tx-amount.pos { color: #5cb85c; }
