@@ -1,165 +1,182 @@
+/* =================================================
+   CONFIG
+================================================= */
 const API_URL = "https://script.google.com/macros/s/AKfycbwWk-tBt9j77Wh1WJaetaObiKxcriRAtqLJO_CbGpIn3ypSaM0z7mBCLNRngbzODk0qtQ/exec";
-let appData = null;
+const MAX_RECENT = 30;
 
-// =====================
-// FETCH DATA FROM API
-// =====================
-async function fetchData() {
-  if (appData) return appData; // cache
+/* =================================================
+   HELPER
+================================================= */
+function formatCurrency(n) {
+  return "฿" + Number(n || 0).toLocaleString();
+}
+
+/* =================================================
+   HOME PAGE
+================================================= */
+async function initHome() {
   try {
     const res = await fetch(API_URL);
     const data = await res.json();
-    appData = data;
-    return data;
-  } catch (err) {
-    console.error("Error fetching API:", err);
-    return null;
-  }
-}
+    const current = data.current;
+    const monthly = data.monthly;
+    const cumulative = data.cumulative;
 
-// =====================
-// HOME PAGE
-// =====================
-async function initHome() {
-  const data = await fetchData();
-  if (!data) return;
+    // cumulative balance top
+    document.getElementById("cumulative-balance").innerText = formatCurrency(cumulative.currentBalance);
 
-  // Cumulative balance
-  document.getElementById("cumulative-balance").innerText = `฿${formatNumber(data.cumulative.currentBalance)}`;
+    // monthly summary
+    document.getElementById("monthly-income").innerText = formatCurrency(monthly.income);
+    document.getElementById("monthly-expense").innerText = formatCurrency(monthly.expense);
+    document.getElementById("monthly-balance").innerText = formatCurrency(monthly.balance);
 
-  // Monthly summary
-  const m = data.monthly;
-  document.getElementById("monthly-income").innerText = `฿${formatNumber(m.income)}`;
-  document.getElementById("monthly-expense").innerText = `฿${formatNumber(Math.abs(m.expense))}`;
-  document.getElementById("monthly-balance").innerText = `฿${formatNumber(m.balance)}`;
-
-  // Transactions list (30 ล่าสุด)
-  const listEl = document.getElementById("transaction-list");
-  listEl.innerHTML = "";
-  const latest = m.list.slice(0,30);
-  latest.forEach(t => {
-    const div = document.createElement("div");
-    div.className = "transaction-item";
-    div.innerText = `${t.date} | ${t.amount>0?'+':'-'}${formatNumber(Math.abs(t.amount))} | ${t.category} | ${t.description}`;
-    listEl.appendChild(div);
-  });
-}
-
-// =====================
-// TRANSACTIONS PAGE
-// =====================
-async function initTransactions() {
-  const data = await fetchData();
-  if (!data) return;
-
-  const allList = data.monthly.list; // ใช้เดือนปัจจุบันเป็น default
-  const listEl = document.getElementById("all-transaction-list");
-  listEl.innerHTML = "";
-  allList.forEach(t => {
-    const div = document.createElement("div");
-    div.className = "transaction-item";
-    div.innerText = `${t.date} | ${t.amount>0?'+':'-'}${formatNumber(Math.abs(t.amount))} | ${t.category} | ${t.description}`;
-    listEl.appendChild(div);
-  });
-
-  // populate month/year select
-  const monthSelect = document.getElementById("month-select");
-  const yearSelect = document.getElementById("year-select");
-  monthSelect.innerHTML = "";
-  yearSelect.innerHTML = "";
-  const today = new Date();
-  for(let i=1;i<=12;i++){
-    const opt = document.createElement("option");
-    opt.value = i;
-    opt.text = i;
-    if(i===today.getMonth()+1) opt.selected = true;
-    monthSelect.appendChild(opt);
-  }
-  for(let y=today.getFullYear(); y>=today.getFullYear()-5; y--){
-    const opt = document.createElement("option");
-    opt.value = y;
-    opt.text = y;
-    if(y===today.getFullYear()) opt.selected = true;
-    yearSelect.appendChild(opt);
-  }
-}
-
-// =====================
-// FUND PAGE
-// =====================
-async function initFund() {
-  const data = await fetchData();
-  if (!data) return;
-
-  // สมมติเอา cumulative balance เป็น fund
-  const saved = data.cumulative.currentBalance > 0 ? data.cumulative.currentBalance : 0;
-  const goal = 50000; // ตัวอย่าง
-  document.getElementById("fund-saved").innerText = `฿${formatNumber(saved)}`;
-  document.getElementById("fund-goal").innerText = `฿${formatNumber(goal)}`;
-  const progress = document.getElementById("fund-progress");
-  progress.value = saved;
-  progress.max = goal;
-}
-
-// =====================
-// ANALYTICS PAGE
-// =====================
-async function initAnalytics() {
-  const data = await fetchData();
-  if (!data) return;
-
-  const ctx = document.getElementById('analytics-chart').getContext('2d');
-  const period = document.getElementById('analytics-period').value;
-
-  let labels = [];
-  let values = [];
-
-  if(period === 'daily'){
-    labels = Object.keys(data.analytics.daily);
-    values = Object.values(data.analytics.daily);
-  } else if(period === 'monthly'){
-    // แปลงข้อมูลรายเดือน
-    const monthly = {};
-    Object.entries(data.analytics.daily).forEach(([date,val])=>{
-      const m = date.slice(0,7); // YYYY-MM
-      monthly[m] = (monthly[m]||0)+val;
+    // recent transactions (30 รายการล่าสุด)
+    const listDiv = document.getElementById("transaction-list");
+    listDiv.innerHTML = "";
+    monthly.list.slice(0, MAX_RECENT).forEach(tx => {
+      const div = document.createElement("div");
+      div.className = "transaction-item";
+      div.innerText = `${tx.date} | ${tx.category} | ${tx.description} | ${formatCurrency(tx.amount)}`;
+      listDiv.appendChild(div);
     });
-    labels = Object.keys(monthly);
-    values = Object.values(monthly);
+
+  } catch(e) {
+    console.error(e);
   }
+}
 
-  if(window.analyticsChart) window.analyticsChart.destroy();
-  window.analyticsChart = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: labels,
-      datasets: [{
-        label: 'Amount',
-        data: values,
-        backgroundColor: 'rgba(75, 192, 192, 0.6)'
-      }]
-    },
-    options: {
-      responsive:true,
-      maintainAspectRatio:false
+function goTransactionsAll() {
+  window.location.href = "transactions.html";
+}
+
+function goFund() {
+  window.location.href = "fund.html";
+}
+
+function goHome() {
+  window.location.href = "index.html";
+}
+
+function goAnalytics() {
+  window.location.href = "analytics.html";
+}
+
+/* =================================================
+   TRANSACTIONS PAGE
+================================================= */
+async function initTransactions() {
+  try {
+    const res = await fetch(API_URL);
+    const data = await res.json();
+    const transactions = data.monthly.list;
+
+    // populate month/year selects
+    const monthSelect = document.getElementById("month-select");
+    const yearSelect = document.getElementById("year-select");
+    const currentYear = new Date().getFullYear();
+    const currentMonth = new Date().getMonth() + 1;
+
+    for(let y=currentYear; y>=currentYear-5; y--) {
+      const opt = document.createElement("option");
+      opt.value = y; opt.text = y;
+      if(y===currentYear) opt.selected=true;
+      yearSelect.appendChild(opt);
     }
-  });
 
-  // update on change
-  document.getElementById('analytics-period').onchange = initAnalytics;
+    for(let m=1; m<=12; m++){
+      const opt = document.createElement("option");
+      opt.value = m; opt.text = m;
+      if(m===currentMonth) opt.selected=true;
+      monthSelect.appendChild(opt);
+    }
+
+    const renderList = () => {
+      const selectedYear = parseInt(yearSelect.value);
+      const selectedMonth = parseInt(monthSelect.value);
+      const listDiv = document.getElementById("all-transaction-list");
+      listDiv.innerHTML = "";
+
+      const filtered = transactions.filter(tx=>tx.date.startsWith(`${selectedYear}-${selectedMonth.toString().padStart(2,"0")}`));
+      filtered.forEach(tx=>{
+        const div = document.createElement("div");
+        div.className = "transaction-item";
+        div.innerText = `${tx.date} | ${tx.category} | ${tx.description} | ${formatCurrency(tx.amount)}`;
+        listDiv.appendChild(div);
+      });
+    }
+
+    monthSelect.addEventListener("change", renderList);
+    yearSelect.addEventListener("change", renderList);
+
+    renderList();
+
+  } catch(e) {
+    console.error(e);
+  }
 }
 
-// =====================
-// HELPER
-// =====================
-function formatNumber(num){
-  return num.toLocaleString('en-US',{maximumFractionDigits:2});
+/* =================================================
+   FUND PAGE
+================================================= */
+async function initFund() {
+  try {
+    const res = await fetch(API_URL);
+    const data = await res.json();
+    const monthly = data.monthly;
+
+    const saved = monthly.balance > 0 ? monthly.balance : 0;
+    const goal = 50000;
+
+    document.getElementById("fund-saved").innerText = formatCurrency(saved);
+    document.getElementById("fund-goal").innerText = formatCurrency(goal);
+    document.getElementById("fund-progress").value = saved;
+    document.getElementById("fund-progress").max = goal;
+
+  } catch(e) {
+    console.error(e);
+  }
 }
 
-// =====================
-// NAVIGATION
-// =====================
-function goHome(){ showPage('home'); }
-function goFund(){ showPage('fund'); }
-function goAnalytics(){ showPage('analytics'); }
-function goTransactionsAll(){ showPage('transactions'); }
+/* =================================================
+   ANALYTICS PAGE
+================================================= */
+async function initAnalytics() {
+  try {
+    const res = await fetch(API_URL);
+    const data = await res.json();
+    const analytics = data.analytics;
+
+    const ctx = document.getElementById("analytics-chart").getContext("2d");
+    let chart;
+
+    const renderChart = (period) => {
+      const labels = Object.keys(analytics.daily).sort();
+      const values = labels.map(d=>analytics.daily[d]);
+
+      if(chart) chart.destroy();
+      chart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels,
+          datasets:[{
+            label: "Balance / Day",
+            data: values,
+            borderColor: "blue",
+            backgroundColor:"rgba(0,0,255,0.2)"
+          }]
+        },
+        options: {
+          responsive:true,
+          maintainAspectRatio:false
+        }
+      });
+    }
+
+    const periodSelect = document.getElementById("analytics-period");
+    periodSelect.addEventListener("change", ()=>renderChart(periodSelect.value));
+    renderChart(periodSelect.value);
+
+  } catch(e) {
+    console.error(e);
+  }
+}
