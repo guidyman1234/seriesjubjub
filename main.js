@@ -45,21 +45,19 @@ function renderTransactions(containerId, list) {
 
   list.forEach(t => {
     const row = document.createElement("div");
-    row.className = "tx-item";
+    row.className = "tx-row";
 
     const isPlus = t.amount >= 0;
 
     row.innerHTML = `
-      <div class="tx-left">
-        <div class="tx-date">${t.date}</div>
-        <div class="tx-desc">
-          <strong>${t.category}</strong>
-          ${t.description ? "· " + t.description : ""}
-        </div>
+      <div class="tx-top">
+        <span class="tx-date">${t.date}</span>
+        <span class="tx-amount ${isPlus ? "tx-plus" : "tx-minus"}">
+          ${isPlus ? "+" : "-"}฿${Math.abs(t.amount).toLocaleString()}
+        </span>
       </div>
-
-      <div class="tx-amount ${isPlus ? "tx-plus" : "tx-minus"}">
-        ${isPlus ? "+" : "-"}฿${Math.abs(t.amount).toLocaleString()}
+      <div class="tx-desc">
+        ${t.category} · ${t.description || ""}
       </div>
     `;
 
