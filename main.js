@@ -1,110 +1,90 @@
 const API_URL = "https://script.google.com/macros/s/AKfycbwWk-tBt9j77Wh1WJaetaObiKxcriRAtqLJO_CbGpIn3ypSaM0z7mBCLNRngbzODk0qtQ/exec";
 
-let appData = {};
+let globalData = null;
 
 async function fetchData() {
   const res = await fetch(API_URL);
-  appData = await res.json();
-  return appData;
+  return await res.json();
 }
 
-function formatMoney(num) {
-  return "฿" + num.toLocaleString();
+// ------------------ HOME ------------------
+async function initHome() {
+  globalData = await fetchData();
+
+  // Cumulative balance
+  document.getElementById("cumulative-balance").textContent = "฿" + globalData.cumulative.currentBalance.toLocaleString();
+
+  // Monthly summary
+  document.getElementById("monthly-income").textContent = "฿" + globalData.monthly.income.toLocaleString();
+  document.getElementById("monthly-expense").textContent = "฿" + Math.abs(globalData.monthly.expense).toLocaleString();
+  document.getElementById("monthly-balance").textContent = "฿" + globalData.monthly.balance.toLocaleString();
+
+  renderTransactions("transaction-list", globalData.monthly.list.slice(0,30));
 }
 
-/* =========================
-   Navigation
-========================= */
+function renderTransactions(containerId, list) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = "";
+  list.forEach(t => {
+    const div = document.createElement("div");
+    div.textContent = `${t.date} | ${t.category}: ${t.description} | ${t.amount.toLocaleString()}`;
+    container.appendChild(div);
+  });
+}
+
+// ------------------ NAV ------------------
 function goHome() { window.location.href = "index.html"; }
 function goFund() { window.location.href = "fund.html"; }
 function goAnalytics() { window.location.href = "analytics.html"; }
 function goTransactionsAll() { window.location.href = "transactions.html"; }
 
-/* =========================
-   Render Home
-========================= */
-async function initHome() {
-  await fetchData();
-  document.getElementById("cumulative-balance").textContent = formatMoney(appData.cumulative.currentBalance);
-  document.getElementById("monthly-income").textContent = formatMoney(appData.monthly.income);
-  document.getElementById("monthly-expense").textContent = formatMoney(appData.monthly.expense);
-  document.getElementById("monthly-balance").textContent = formatMoney(appData.monthly.balance);
-
-  const container = document.getElementById("transaction-list");
-  container.innerHTML = "";
-  appData.monthly.list.slice(0,30).forEach(tx=>{
-    container.innerHTML += `<div class="tx">
-      <span class="tx-date">${tx.date}</span> | 
-      <span class="tx-cat">${tx.category}</span>: 
-      <span class="tx-desc">${tx.description}</span> 
-      <span class="tx-amt">${formatMoney(tx.amount)}</span>
-    </div>`;
-  });
+// ------------------ TRANSACTIONS ------------------
+async function initTransactions() {
+  if (!globalData) globalData = await fetchData();
+  populateMonthYearSelects();
+  renderTransactions("all-transaction-list", globalData.monthly.list);
 }
 
-/* =========================
-   Render Transactions Page
-========================= */
-async function initTransactions() {
-  await fetchData();
+function populateMonthYearSelects() {
   const monthSelect = document.getElementById("month-select");
   const yearSelect = document.getElementById("year-select");
-  const container = document.getElementById("all-transaction-list");
 
-  const years = [...new Set(appData.monthly.list.map(t=>new Date(t.date).getFullYear()))];
-  years.forEach(y=>{
-    const opt = document.createElement("option"); opt.value=y; opt.text=y; yearSelect.add(opt);
-  });
+  for (let m=1; m<=12; m++) {
+    const opt = document.createElement("option"); opt.value=m; opt.textContent=m;
+    monthSelect.appendChild(opt);
+  }
 
-  const months = [...Array(12).keys()].map(m=>m+1);
-  months.forEach(m=>{
-    const opt = document.createElement("option"); opt.value=m; opt.text=m; monthSelect.add(opt);
-  });
+  const year = new Date().getFullYear();
+  for (let y=year-2; y<=year; y++) {
+    const opt = document.createElement("option"); opt.value=y; opt.textContent=y;
+    yearSelect.appendChild(opt);
+  }
 
-  renderTransactions(container, appData.monthly.list);
+  monthSelect.value = globalData.current.year;
+  yearSelect.value = globalData.current.year;
 }
 
-function renderTransactions(container, list) {
-  container.innerHTML = "";
-  list.forEach(tx=>{
-    container.innerHTML += `<div class="tx">
-      <span class="tx-date">${tx.date}</span> | 
-      <span class="tx-cat">${tx.category}</span>: 
-      <span class="tx-desc">${tx.description}</span> 
-      <span class="tx-amt">${formatMoney(tx.amount)}</span>
-    </div>`;
-  });
-}
-
-/* =========================
-   Render Fund
-========================= */
+// ------------------ FUND ------------------
 async function initFund() {
-  await fetchData();
-  document.getElementById("fund-saved").textContent = formatMoney(appData.current.balance);
-  document.getElementById("fund-goal").textContent = formatMoney(50000);
-  document.getElementById("fund-progress").value = appData.current.balance;
+  if (!globalData) globalData = await fetchData();
+  const saved = Math.max(globalData.current.balance,0);
+  const goal = 50000;
+  document.getElementById("fund-saved").textContent = "฿"+saved.toLocaleString();
+  document.getElementById("fund-goal").textContent = "฿"+goal.toLocaleString();
+  document.getElementById("fund-progress").value = saved;
 }
 
-/* =========================
-   Render Analytics
-========================= */
+// ------------------ ANALYTICS ------------------
 async function initAnalytics() {
-  await fetchData();
+  if (!globalData) globalData = await fetchData();
   const ctx = document.getElementById("analytics-chart").getContext("2d");
-  const labels = Object.keys(appData.analytics.daily);
-  const data = Object.values(appData.analytics.daily);
+
+  const labels = Object.keys(globalData.analytics.daily);
+  const data = Object.values(globalData.analytics.daily);
 
   new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels,
-      datasets: [{
-        label: "Daily Amount",
-        data,
-        backgroundColor: "rgba(54,162,235,0.5)"
-      }]
-    },
+    type: 'line',
+    data: { labels, datasets: [{ label: 'Daily Spend/Income', data, borderColor:'#007bff', fill:false }]},
     options: { responsive:true, maintainAspectRatio:false }
   });
 }
