@@ -6,7 +6,13 @@ async function fetchData() {
   const res = await fetch(API_URL);
   return await res.json();
 }
-
+function sortLatestFirst(list) {
+  return list.sort((a, b) => {
+    if (a.year !== b.year) return b.year - a.year;
+    if (a.month !== b.month) return b.month - a.month;
+    return b.row - a.row; // แถวล่าง = ใหม่กว่า
+  });
+}
 // ------------------ HOME ------------------
 async function initHome() {
   globalData = await fetchData();
@@ -19,7 +25,12 @@ async function initHome() {
   document.getElementById("monthly-expense").textContent = "฿" + Math.abs(globalData.monthly.expense).toLocaleString();
   document.getElementById("monthly-balance").textContent = "฿" + globalData.monthly.balance.toLocaleString();
 
-  renderTransactions("transaction-list", globalData.monthly.list.slice(0,30));
+  const sorted = sortLatestFirst([...globalData.all]);
+
+renderTransactions(
+  "transaction-list",
+  sorted.slice(0, 30)
+);
 }
 
 function renderTransactions(containerId, list) {
@@ -28,17 +39,20 @@ function renderTransactions(containerId, list) {
 
   list.forEach(t => {
     const row = document.createElement("div");
-    row.className = "tx-row";
+    row.className = "tx-item";
+
+    const isPlus = t.amount >= 0;
+    const amountClass = isPlus ? "tx-plus" : "tx-minus";
 
     row.innerHTML = `
-      <div class="tx-date">${t.date}</div>
-      <div class="tx-main">
-        <span>${t.category}</span>
-        <span>|</span>
-        <span>${t.description}</span>
-        <span class="tx-amount ${t.amount < 0 ? 'neg' : 'pos'}">
-          ${t.amount.toLocaleString()}
-        </span>
+      <div class="tx-left">
+        <div class="tx-date">${t.date}</div>
+        <div class="tx-desc">
+          <strong>${t.category}</strong> | ${t.description || ""}
+        </div>
+      </div>
+      <div class="tx-amount ${amountClass}">
+        ${isPlus ? "+" : "-"}฿${Math.abs(t.amount).toLocaleString()}
       </div>
     `;
 
@@ -63,10 +77,12 @@ function filterTransactions() {
   const y = Number(document.getElementById("year-select").value);
 
   const filtered = globalData.all.filter(t =>
-    t.month === m && t.year === y
-  );
+  t.month === m && t.year === y
+);
 
-  renderTransactions("all-transaction-list", filtered);
+const sorted = sortLatestFirst(filtered);
+
+renderTransactions("all-transaction-list", sorted);
 }
 document.getElementById("month-select").onchange = filterTransactions;
 document.getElementById("year-select").onchange = filterTransactions;
