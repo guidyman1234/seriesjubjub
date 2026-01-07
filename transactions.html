@@ -13,14 +13,16 @@
   <select id="year-select"></select>
 </header>
 
-<div class="transactions" id="all-transaction-list"></div>
+<div class="transactions scrollable" id="all-transaction-list"></div>
 
-<nav>
+<nav class="bottom-nav">
   <button onclick="goFund()">💰</button>
   <button onclick="goHome()">🏠</button>
 </nav>
 
 <script src="main.js"></script>
-<script>initTransactions();</script>
+<script>
+initTransactions();
+</script>
 </body>
 </html>
