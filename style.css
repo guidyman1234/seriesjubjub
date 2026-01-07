@@ -1,12 +1,59 @@
-body { font-family:sans-serif; margin:0; padding:0; }
-header { text-align:center; padding:10px; background:#eee; }
-.summary { text-align:center; padding:5px; font-size:14px; }
-.transactions { padding:5px; max-height:300px; overflow-y:auto; margin:5px; border:1px solid #ccc; border-radius:5px; }
-.tx { display:flex; justify-content:space-between; padding:3px 0; border-bottom:1px solid #ddd; font-size:14px; }
-.tx-date { flex:0 0 80px; }
-.tx-cat { flex:0 0 80px; font-weight:bold; }
-.tx-desc { flex:1 1 auto; margin:0 5px; }
-.tx-amt { flex:0 0 80px; text-align:right; }
-.bottom-nav { position:fixed; bottom:0; left:0; right:0; display:flex; justify-content:space-around; background:#fff; border-top:1px solid #ccc; padding:5px 0; }
-.btn-small { font-size:12px; padding:5px; margin:2px; }
-.scrollable { overflow-y:auto; }
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  text-align: center;
+}
+
+header {
+  background: #f0f0f0;
+  padding: 15px 0;
+}
+
+h1, h2 {
+  margin: 0;
+}
+
+.summary {
+  margin: 10px 0;
+  font-size: 16px;
+}
+
+.transactions {
+  max-height: 400px;
+  overflow-y: auto;
+  margin: 10px;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px #ccc;
+  padding: 10px;
+  background: #fff;
+}
+
+.transactions div {
+  padding: 5px 0;
+  border-bottom: 1px solid #eee;
+  font-size: 14px;
+}
+
+nav {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  background: #fafafa;
+  padding: 5px 0;
+  display: flex;
+  justify-content: space-around;
+}
+
+nav button {
+  font-size: 24px;
+  background: none;
+  border: none;
+}
+
+.btn-small {
+  font-size: 12px;
+  padding: 5px 10px;
+  margin-bottom: 10px;
+  border-radius: 5px;
+}
