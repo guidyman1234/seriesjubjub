@@ -1,27 +1,46 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>My Finance</title>
-  <link rel="stylesheet" href="style.css" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Personal Finance Dashboard</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
+<header>
+  <h1 id="cumulative-balance">฿0</h1>
+  <div class="summary">
+    Income: <span id="monthly-income">฿0</span> |
+    Expense: <span id="monthly-expense">฿0</span> |
+    Balance: <span id="monthly-balance">฿0</span>
+  </div>
+  <div class="btn-container">
+    <button class="btn-small" id="view-all-btn">ดูรายการทั้งหมด</button>
+  </div>
+</header>
 
-<div id="app">
+<div class="transactions" id="transaction-list"></div>
 
-  <!-- CONTENT -->
-  <main id="content"></main>
+<nav>
+  <button id="fund-btn">💰</button>
+  <button id="home-btn">🏠</button>
+  <button id="analytics-btn">📊</button>
+</nav>
 
-  <!-- BOTTOM NAV -->
-  <nav class="bottom-nav">
-    <button onclick="showFund()">💰</button>
-    <button class="home-btn" onclick="showHome()">●</button>
-    <button onclick="showAnalytics()">📊</button>
-  </nav>
-
+<!-- Transactions Modal -->
+<div id="transactions-modal">
+  <div class="modal-content">
+    <h2>Transactions</h2>
+    <div>
+      Month: <select id="month-select"></select>
+      Year: <select id="year-select"></select>
+      <button id="close-modal-btn">Close</button>
+    </div>
+    <div class="transactions" id="all-transaction-list"></div>
+  </div>
 </div>
 
-<script src="app.js"></script>
+<script src="main.js"></script>
 </body>
 </html>
