@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Analytics</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h2>Analytics</h2>
+  <select id="analytics-period">
+    <option value="daily">Daily</option>
+    <option value="monthly">Monthly</option>
+  </select>
+</header>
+
+<canvas id="analytics-chart"></canvas>
+
+<nav>
+  <button onclick="goHome()">🏠</button>
+  <button onclick="goFund()">💰</button>
+</nav>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="main.js"></script>
+<script>
+initAnalytics();
+</script>
+</body>
+</html>
