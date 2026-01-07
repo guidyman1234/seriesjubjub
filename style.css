@@ -180,3 +180,36 @@ nav button {
   color: #333;
   text-align: left;
 }
+.tx-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 8px;
+  border-bottom: 1px solid #eee;
+}
+
+.tx-left {
+  text-align: left;
+}
+
+.tx-date {
+  font-size: 12px;
+  color: #666;
+}
+
+.tx-desc {
+  font-size: 14px;
+}
+
+.tx-amount {
+  font-size: 16px;
+  font-weight: bold;
+  align-self: center;
+}
+
+.tx-plus {
+  color: green;
+}
+
+.tx-minus {
+  color: red;
+}
