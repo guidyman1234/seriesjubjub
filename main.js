@@ -77,7 +77,9 @@ async function initTransactions() {
   if (!globalData) globalData = await fetchData();
 
   populateMonthYearSelects();
+  setTimeout (() => {
   filterTransactions();
+  }, 0);
 }
 
 function filterTransactions() {
@@ -94,6 +96,8 @@ function filterTransactions() {
 function populateMonthYearSelects() {
   const monthSelect = document.getElementById("month-select");
   const yearSelect = document.getElementById("year-select");
+   monthSelect.innerHTML = "";
+   yearSelect.innerHTML ="";
 
   for (let m=1; m<=12; m++) {
     const opt = document.createElement("option"); opt.value=m; opt.textContent=m;
