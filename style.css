@@ -77,3 +77,37 @@ nav button {
 
 .tx-amount.neg { color: #d9534f; }
 .tx-amount.pos { color: #5cb85c; }
+
+.tx-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.tx-left {
+  text-align: left;
+}
+
+.tx-date {
+  font-size: 12px;
+  color: #888;
+}
+
+.tx-desc {
+  font-size: 14px;
+}
+
+.tx-amount {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.tx-plus {
+  color: #2ecc71;
+}
+
+.tx-minus {
+  color: #e74c3c;
+}
