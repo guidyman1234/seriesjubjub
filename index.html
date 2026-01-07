@@ -21,9 +21,9 @@
   <button class="btn-small" onclick="goTransactionsAll()">ดูรายการทั้งหมด</button>
 </div>
 
-<div class="transactions" id="transaction-list"></div>
+<div class="transactions scrollable" id="transaction-list"></div>
 
-<nav>
+<nav class="bottom-nav">
   <button onclick="goFund()">💰</button>
   <button onclick="goHome()">🏠</button>
   <button onclick="goAnalytics()">📊</button>
@@ -31,6 +31,8 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="main.js"></script>
-<script>initHome();</script>
+<script>
+initHome();
+</script>
 </body>
 </html>
