@@ -17,24 +17,30 @@ function sortLatestFirst(list) {
 async function initHome() {
   globalData = await fetchData();
 
-  // Cumulative balance
-  document.getElementById("cumulative-balance").textContent = "฿" + globalData.cumulative.currentBalance.toLocaleString();
+  document.getElementById("cumulative-balance").textContent =
+    "฿" + globalData.cumulative.currentBalance.toLocaleString();
 
-  // Monthly summary
-  document.getElementById("monthly-income").textContent = "฿" + globalData.monthly.income.toLocaleString();
-  document.getElementById("monthly-expense").textContent = "฿" + Math.abs(globalData.monthly.expense).toLocaleString();
-  document.getElementById("monthly-balance").textContent = "฿" + globalData.monthly.balance.toLocaleString();
+  document.getElementById("monthly-income").textContent =
+    "฿" + globalData.monthly.income.toLocaleString();
 
-  const sorted = sortLatestFirst([...globalData.all]);
+  document.getElementById("monthly-expense").textContent =
+    "฿" + Math.abs(globalData.monthly.expense).toLocaleString();
 
-renderTransactions(
-  "transaction-list",
-  sorted.slice(0, 30)
-);
+  document.getElementById("monthly-balance").textContent =
+    "฿" + globalData.monthly.balance.toLocaleString();
+
+  // 🔥 เอาทุกเดือน + sort ล่าสุด
+  const latest = [...globalData.all]
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .slice(0, 30);
+
+  renderTransactions("transaction-list", latest);
 }
 
 function renderTransactions(containerId, list) {
   const container = document.getElementById(containerId);
+  if (!container) return;
+
   container.innerHTML = "";
 
   list.forEach(t => {
@@ -42,16 +48,17 @@ function renderTransactions(containerId, list) {
     row.className = "tx-item";
 
     const isPlus = t.amount >= 0;
-    const amountClass = isPlus ? "tx-plus" : "tx-minus";
 
     row.innerHTML = `
       <div class="tx-left">
         <div class="tx-date">${t.date}</div>
         <div class="tx-desc">
-          <strong>${t.category}</strong> | ${t.description || ""}
+          <strong>${t.category}</strong>
+          ${t.description ? "· " + t.description : ""}
         </div>
       </div>
-      <div class="tx-amount ${amountClass}">
+
+      <div class="tx-amount ${isPlus ? "tx-plus" : "tx-minus"}">
         ${isPlus ? "+" : "-"}฿${Math.abs(t.amount).toLocaleString()}
       </div>
     `;
@@ -69,23 +76,20 @@ function goTransactionsAll() { window.location.href = "transactions.html"; }
 // ------------------ TRANSACTIONS ------------------
 async function initTransactions() {
   if (!globalData) globalData = await fetchData();
+
   populateMonthYearSelects();
-  
-document.getElementById("month-select").onchange = filterTransactions;
-document.getElementById("year-select").onchange = filterTransactions;
-  filterTransactions ();
+  filterTransactions();
 }
+
 function filterTransactions() {
   const m = Number(document.getElementById("month-select").value);
   const y = Number(document.getElementById("year-select").value);
 
-  const filtered = globalData.all.filter(t =>
-  t.month === m && t.year === y
-);
+  const filtered = globalData.all
+    .filter(t => t.month === m && t.year === y)
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
 
-const sorted = sortLatestFirst(filtered);
-
-renderTransactions("all-transaction-list", sorted);
+  renderTransactions("all-transaction-list", filtered);
 }
 
 function populateMonthYearSelects() {
