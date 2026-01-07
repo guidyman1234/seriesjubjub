@@ -1,15 +1,166 @@
-body { font-family:sans-serif; margin:0; background:#f5f5f5; }
-header { text-align:center; padding:10px; background:#4caf50; color:white; }
-h1,h2 { margin:4px 0; }
-.summary { text-align:center; margin:10px; background:#fff; padding:10px; border-radius:8px; }
-.transactions { max-height:400px; overflow-y:auto; margin:10px; background:#fff; border-radius:8px; padding:10px; }
-.transaction-item { display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #eee; }
-.transaction-item:last-child { border-bottom:none; }
-.transaction-info { flex:1; }
-.transaction-amount { margin-left:10px; font-weight:bold; }
-.btn-small { padding:4px 8px; font-size:0.8rem; margin-bottom:6px; cursor:pointer; }
-nav { position:fixed; bottom:0; left:0; width:100%; display:flex; justify-content:space-around; background:#fff; border-top:1px solid #ccc; padding:10px 0; }
-nav button { font-size:1.2rem; background:none; border:none; cursor:pointer; }
-#transactions-modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); overflow:auto; z-index:100; }
-.modal-content { background:#fff; margin:50px auto; padding:20px; border-radius:10px; max-width:600px; }
-select { margin:0 5px; padding:3px; }
+/* ===========================
+   RESET & BASE
+=========================== */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+body {
+  background-color: #f8f9fa;
+  color: #212529;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===========================
+   HEADER
+=========================== */
+header {
+  padding: 15px;
+  text-align: center;
+  background-color: #ffffff;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+header h1, header h2 {
+  font-size: 1.8rem;
+  margin-bottom: 5px;
+}
+
+header select {
+  padding: 5px 8px;
+  margin: 5px;
+  font-size: 0.9rem;
+}
+
+/* ===========================
+   SUMMARY
+=========================== */
+.summary {
+  padding: 10px 20px;
+  text-align: center;
+  background-color: #ffffff;
+  margin: 10px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  font-size: 1rem;
+}
+
+.summary div {
+  margin: 5px 0;
+}
+
+/* ===========================
+   TRANSACTIONS LIST
+=========================== */
+.transactions {
+  margin: 10px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  padding: 10px;
+  max-height: 400px; /* scroll เฉพาะ list */
+  overflow-y: auto;
+}
+
+.transaction-item {
+  padding: 5px 0;
+  border-bottom: 1px solid #eee;
+  font-size: 0.95rem;
+}
+
+.transaction-item:last-child {
+  border-bottom: none;
+}
+
+/* ===========================
+   NAVIGATION BUTTONS
+=========================== */
+nav {
+  display: flex;
+  justify-content: space-around;
+  padding: 10px 0;
+  background-color: #ffffff;
+  box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
+  position: sticky;
+  bottom: 0;
+}
+
+nav button {
+  font-size: 1.5rem;
+  padding: 8px 12px;
+  border-radius: 50%;
+  border: none;
+  background-color: #e9ecef;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+nav button:hover {
+  background-color: #ced4da;
+}
+
+/* ===========================
+   SMALL BUTTONS
+=========================== */
+.btn-small {
+  padding: 5px 10px;
+  font-size: 0.85rem;
+  border: none;
+  border-radius: 6px;
+  background-color: #0d6efd;
+  color: white;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.btn-small:hover {
+  background-color: #0b5ed7;
+}
+
+/* ===========================
+   FUND PAGE
+=========================== */
+progress {
+  width: 80%;
+  height: 20px;
+  margin-top: 10px;
+}
+
+/* ===========================
+   ANALYTICS
+=========================== */
+#analytics-chart {
+  width: 95%;
+  height: 300px;
+  margin: 10px auto;
+}
+
+/* ===========================
+   RESPONSIVE (iPhone / iPad)
+=========================== */
+@media (max-width: 768px) {
+  header h1, header h2 {
+    font-size: 1.5rem;
+  }
+
+  .summary {
+    font-size: 0.95rem;
+    padding: 8px 15px;
+  }
+
+  .transaction-item {
+    font-size: 0.85rem;
+  }
+
+  nav button {
+    font-size: 1.3rem;
+  }
+}
