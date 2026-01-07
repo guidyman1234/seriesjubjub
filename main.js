@@ -1,72 +1,110 @@
 const API_URL = "https://script.google.com/macros/s/AKfycbwWk-tBt9j77Wh1WJaetaObiKxcriRAtqLJO_CbGpIn3ypSaM0z7mBCLNRngbzODk0qtQ/exec";
 
+let appData = {};
+
 async function fetchData() {
-    const res = await fetch(API_URL);
-    const data = await res.json();
-    return data;
+  const res = await fetch(API_URL);
+  appData = await res.json();
+  return appData;
 }
 
-// ---------- NAVIGATION ----------
+function formatMoney(num) {
+  return "฿" + num.toLocaleString();
+}
+
+/* =========================
+   Navigation
+========================= */
 function goHome() { window.location.href = "index.html"; }
-function goTransactionsAll() { window.location.href = "transactions.html"; }
 function goFund() { window.location.href = "fund.html"; }
 function goAnalytics() { window.location.href = "analytics.html"; }
+function goTransactionsAll() { window.location.href = "transactions.html"; }
 
-// ---------- HOME ----------
+/* =========================
+   Render Home
+========================= */
 async function initHome() {
-    const data = await fetchData();
-    document.getElementById("cumulative-balance").textContent = `฿${data.cumulative.currentBalance.toLocaleString()}`;
-    document.getElementById("monthly-income").textContent = `฿${data.current.income.toLocaleString()}`;
-    document.getElementById("monthly-expense").textContent = `฿${data.current.expense.toLocaleString()}`;
-    document.getElementById("monthly-balance").textContent = `฿${data.current.balance.toLocaleString()}`;
-    renderTransactionsList(data.monthly.list, "transaction-list", 30);
+  await fetchData();
+  document.getElementById("cumulative-balance").textContent = formatMoney(appData.cumulative.currentBalance);
+  document.getElementById("monthly-income").textContent = formatMoney(appData.monthly.income);
+  document.getElementById("monthly-expense").textContent = formatMoney(appData.monthly.expense);
+  document.getElementById("monthly-balance").textContent = formatMoney(appData.monthly.balance);
+
+  const container = document.getElementById("transaction-list");
+  container.innerHTML = "";
+  appData.monthly.list.slice(0,30).forEach(tx=>{
+    container.innerHTML += `<div class="tx">
+      <span class="tx-date">${tx.date}</span> | 
+      <span class="tx-cat">${tx.category}</span>: 
+      <span class="tx-desc">${tx.description}</span> 
+      <span class="tx-amt">${formatMoney(tx.amount)}</span>
+    </div>`;
+  });
 }
 
-// ---------- TRANSACTIONS ----------
+/* =========================
+   Render Transactions Page
+========================= */
 async function initTransactions() {
-    const data = await fetchData();
-    populateMonthYearSelect(data.current.year, data.current.month);
-    renderTransactionsList(data.monthly.list, "all-transaction-list", data.monthly.list.length);
+  await fetchData();
+  const monthSelect = document.getElementById("month-select");
+  const yearSelect = document.getElementById("year-select");
+  const container = document.getElementById("all-transaction-list");
+
+  const years = [...new Set(appData.monthly.list.map(t=>new Date(t.date).getFullYear()))];
+  years.forEach(y=>{
+    const opt = document.createElement("option"); opt.value=y; opt.text=y; yearSelect.add(opt);
+  });
+
+  const months = [...Array(12).keys()].map(m=>m+1);
+  months.forEach(m=>{
+    const opt = document.createElement("option"); opt.value=m; opt.text=m; monthSelect.add(opt);
+  });
+
+  renderTransactions(container, appData.monthly.list);
 }
 
-function populateMonthYearSelect(currentYear, currentMonth) {
-    const monthSelect = document.getElementById("month-select");
-    const yearSelect = document.getElementById("year-select");
-    for (let m = 1; m <= 12; m++) monthSelect.append(new Option(m, m, m===currentMonth, m===currentMonth));
-    for (let y = currentYear-1; y <= currentYear+1; y++) yearSelect.append(new Option(y, y, y===currentYear, y===currentYear));
+function renderTransactions(container, list) {
+  container.innerHTML = "";
+  list.forEach(tx=>{
+    container.innerHTML += `<div class="tx">
+      <span class="tx-date">${tx.date}</span> | 
+      <span class="tx-cat">${tx.category}</span>: 
+      <span class="tx-desc">${tx.description}</span> 
+      <span class="tx-amt">${formatMoney(tx.amount)}</span>
+    </div>`;
+  });
 }
 
-// ---------- FUND ----------
+/* =========================
+   Render Fund
+========================= */
 async function initFund() {
-    const data = await fetchData();
-    const goal = 50000;
-    const saved = data.current.balance;
-    document.getElementById("fund-saved").textContent = `฿${saved.toLocaleString()}`;
-    document.getElementById("fund-goal").textContent = `฿${goal.toLocaleString()}`;
-    document.getElementById("fund-progress").value = saved;
+  await fetchData();
+  document.getElementById("fund-saved").textContent = formatMoney(appData.current.balance);
+  document.getElementById("fund-goal").textContent = formatMoney(50000);
+  document.getElementById("fund-progress").value = appData.current.balance;
 }
 
-// ---------- ANALYTICS ----------
+/* =========================
+   Render Analytics
+========================= */
 async function initAnalytics() {
-    const data = await fetchData();
-    const ctx = document.getElementById("analytics-chart").getContext("2d");
-    const labels = Object.keys(data.analytics.daily);
-    const values = Object.values(data.analytics.daily);
-    new Chart(ctx, {
-        type: 'bar',
-        data: { labels, datasets:[{label:"Daily", data: values, backgroundColor:"#4caf50"}] },
-        options:{responsive:true, maintainAspectRatio:false}
-    });
-}
+  await fetchData();
+  const ctx = document.getElementById("analytics-chart").getContext("2d");
+  const labels = Object.keys(appData.analytics.daily);
+  const data = Object.values(appData.analytics.daily);
 
-// ---------- HELPER ----------
-function renderTransactionsList(list, containerId, limit=30) {
-    const container = document.getElementById(containerId);
-    container.innerHTML = "";
-    list.slice(0, limit).forEach(item => {
-        const div = document.createElement("div");
-        div.className = "transaction-item";
-        div.textContent = `${item.date} | ${item.amount.toLocaleString()} | ${item.category} | ${item.description}`;
-        container.appendChild(div);
-    });
+  new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [{
+        label: "Daily Amount",
+        data,
+        backgroundColor: "rgba(54,162,235,0.5)"
+      }]
+    },
+    options: { responsive:true, maintainAspectRatio:false }
+  });
 }
