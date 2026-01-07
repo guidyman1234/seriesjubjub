@@ -111,3 +111,37 @@ nav button {
 .tx-minus {
   color: #e74c3c;
 }
+.tx-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.tx-left {
+  text-align: left;
+}
+
+.tx-date {
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 4px;
+}
+
+.tx-desc {
+  font-size: 14px;
+}
+
+.tx-amount {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.tx-plus {
+  color: #2ecc71;
+}
+
+.tx-minus {
+  color: #e74c3c;
+}
