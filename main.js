@@ -70,6 +70,9 @@ function goTransactionsAll() { window.location.href = "transactions.html"; }
 async function initTransactions() {
   if (!globalData) globalData = await fetchData();
   populateMonthYearSelects();
+  
+document.getElementById("month-select").onchange = filterTransactions;
+document.getElementById("year-select").onchange = filterTransactions;
   filterTransactions ();
 }
 function filterTransactions() {
@@ -84,8 +87,6 @@ const sorted = sortLatestFirst(filtered);
 
 renderTransactions("all-transaction-list", sorted);
 }
-document.getElementById("month-select").onchange = filterTransactions;
-document.getElementById("year-select").onchange = filterTransactions;
 
 function populateMonthYearSelects() {
   const monthSelect = document.getElementById("month-select");
