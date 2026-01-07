@@ -25,10 +25,24 @@ async function initHome() {
 function renderTransactions(containerId, list) {
   const container = document.getElementById(containerId);
   container.innerHTML = "";
+
   list.forEach(t => {
-    const div = document.createElement("div");
-    div.textContent = `${t.date} | ${t.category}: ${t.description} | ${t.amount.toLocaleString()}`;
-    container.appendChild(div);
+    const row = document.createElement("div");
+    row.className = "tx-row";
+
+    row.innerHTML = `
+      <div class="tx-date">${t.date}</div>
+      <div class="tx-main">
+        <span>${t.category}</span>
+        <span>|</span>
+        <span>${t.description}</span>
+        <span class="tx-amount ${t.amount < 0 ? 'neg' : 'pos'}">
+          ${t.amount.toLocaleString()}
+        </span>
+      </div>
+    `;
+
+    container.appendChild(row);
   });
 }
 
@@ -42,8 +56,20 @@ function goTransactionsAll() { window.location.href = "transactions.html"; }
 async function initTransactions() {
   if (!globalData) globalData = await fetchData();
   populateMonthYearSelects();
-  renderTransactions("all-transaction-list", globalData.monthly.list);
+  filterTransactions ();
 }
+function filterTransactions() {
+  const m = Number(document.getElementById("month-select").value);
+  const y = Number(document.getElementById("year-select").value);
+
+  const filtered = globalData.all.filter(t =>
+    t.month === m && t.year === y
+  );
+
+  renderTransactions("all-transaction-list", filtered);
+}
+document.getElementById("month-select").onchange = filterTransactions;
+document.getElementById("year-select").onchange = filterTransactions;
 
 function populateMonthYearSelects() {
   const monthSelect = document.getElementById("month-select");
@@ -60,7 +86,7 @@ function populateMonthYearSelects() {
     yearSelect.appendChild(opt);
   }
 
-  monthSelect.value = globalData.current.year;
+  monthSelect.value = globalData.current.month;
   yearSelect.value = globalData.current.year;
 }
 
@@ -77,14 +103,21 @@ async function initFund() {
 // ------------------ ANALYTICS ------------------
 async function initAnalytics() {
   if (!globalData) globalData = await fetchData();
-  const ctx = document.getElementById("analytics-chart").getContext("2d");
 
-  const labels = Object.keys(globalData.analytics.daily);
-  const data = Object.values(globalData.analytics.daily);
+  const ctx = document.getElementById("analytics-chart").getContext("2d");
+  const data = globalData.analytics.byCategory;
 
   new Chart(ctx, {
-    type: 'line',
-    data: { labels, datasets: [{ label: 'Daily Spend/Income', data, borderColor:'#007bff', fill:false }]},
-    options: { responsive:true, maintainAspectRatio:false }
+    type: "pie",
+    data: {
+      labels: Object.keys(data),
+      datasets: [{
+        data: Object.values(data)
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false
+    }
   });
 }
