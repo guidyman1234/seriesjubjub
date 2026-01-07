@@ -1,90 +1,53 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbwWk-tBt9j77Wh1WJaetaObiKxcriRAtqLJO_CbGpIn3ypSaM0z7mBCLNRngbzODk0qtQ/exec";
+const API_URL = 'https://script.google.com/macros/s/AKfycbwWk-tBt9j77Wh1WJaetaObiKxcriRAtqLJO_CbGpIn3ypSaM0z7mBCLNRngbzODk0qtQ/exec'; // ใส่ลิงค์ Apps Script ของคุณ
 
-let DATA = null;
+function formatCurrency(num){ return '฿'+num.toLocaleString(); }
 
-/* =========================
-   LOAD
-========================= */
-async function loadData() {
-  const res = await fetch(API_URL);
-  DATA = await res.json();
-  showHome();
+async function fetchData(){ 
+  const res = await fetch(API_URL); 
+  return await res.json(); 
 }
 
-/* =========================
-   HOME
-========================= */
-function showHome() {
-  const { cumulative, monthly } = DATA;
+// --- Home ---
+async function initHome(){
+  const data = await fetchData();
+  document.getElementById('cumulative-balance').innerText=formatCurrency(data.cumulative.currentBalance);
+  document.getElementById('monthly-income').innerText=formatCurrency(data.current.income);
+  document.getElementById('monthly-expense').innerText=formatCurrency(data.current.expense);
+  document.getElementById('monthly-balance').innerText=formatCurrency(data.current.balance);
 
-  document.getElementById("content").innerHTML = `
-    <div class="balance">
-      <small>Total Balance</small>
-      <h1>${format(cumulative.currentBalance)}</h1>
-    </div>
-
-    <div class="card">
-      <b>This Month</b><br/>
-      Income: ${format(monthly.income)}<br/>
-      Expense: ${format(monthly.expense)}<br/>
-      Net: ${format(monthly.balance)}
-    </div>
-
-    <div class="card">
-      <b>Transactions</b>
-      ${monthly.list.map(t => `
-        <div class="tx">
-          <div class="left">
-            ${t.category}<br/>
-            <small>${t.description}</small>
-          </div>
-          <div class="right ${t.amount >= 0 ? 'plus' : 'minus'}">
-            ${format(t.amount)}
-          </div>
-        </div>
-      `).join("")}
-    </div>
-  `;
+  const container = document.getElementById('transaction-list');
+  container.innerHTML='';
+  data.monthly.list.slice(0,30).forEach(t=>{
+    const div=document.createElement('div'); div.className='transaction-item';
+    div.innerHTML=`<div class="transaction-info">${t.date} | ${t.category} | ${t.description}</div><div class="transaction-amount">${formatCurrency(t.amount)}</div>`;
+    container.appendChild(div);
+  });
 }
 
-/* =========================
-   FUND
-========================= */
-function showFund() {
-  const goal = 500000; // ปรับทีหลัง
-  const saved = DATA.cumulative.currentBalance;
-  const percent = Math.min(100, Math.round(saved / goal * 100));
+// --- Modal ---
+async function showTransactionsAll(){
+  document.getElementById('transactions-modal').style.display='block';
+  await initTransactions();
+}
+function closeTransactionsModal(){ document.getElementById('transactions-modal').style.display='none'; }
 
-  document.getElementById("content").innerHTML = `
-    <div class="balance">
-      <small>UK Fund Goal</small>
-      <h1>${percent}%</h1>
-    </div>
-
-    <div class="card">
-      Goal: ${format(goal)}<br/>
-      Saved: ${format(saved)}
-    </div>
-  `;
+async function initTransactions(){
+  const data = await fetchData();
+  const container = document.getElementById('all-transaction-list');
+  container.innerHTML='';
+  data.monthly.list.forEach(t=>{
+    const div=document.createElement('div'); div.className='transaction-item';
+    div.innerHTML=`<div class="transaction-info">${t.date} | ${t.category} | ${t.description}</div><div class="transaction-amount">${formatCurrency(t.amount)}</div>`;
+    container.appendChild(div);
+  });
 }
 
-/* =========================
-   ANALYTICS
-========================= */
-function showAnalytics() {
-  document.getElementById("content").innerHTML = `
-    <div class="card">
-      <b>Analytics (Raw)</b>
-      <pre>${JSON.stringify(DATA.analytics, null, 2)}</pre>
-    </div>
-  `;
-}
+// --- Navigation ---
+document.getElementById('home-btn').onclick=initHome;
+document.getElementById('fund-btn').onclick=()=>alert('Fund / Goal page placeholder');
+document.getElementById('analytics-btn').onclick=()=>alert('Analytics page placeholder');
+document.getElementById('view-all-btn').onclick=showTransactionsAll;
+document.getElementById('close-modal-btn').onclick=closeTransactionsModal;
 
-/* =========================
-   UTIL
-========================= */
-function format(n) {
-  return Number(n).toLocaleString();
-}
-
-loadData();
+// --- INIT ---
+initHome();
