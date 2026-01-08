@@ -10,7 +10,6 @@ function normalizeTransactions(list) {
   return list.map(t => ({
     year: Number(t.year ?? t.YEAR),
     month: Number(t.month ?? t.MONTH),
-    row: Number(t.row ?? t.ROW),
     date: t.date ?? t.DATE,
     amount: Number(t.amount ?? t.AMOUNT),
     category: t.category ?? t.CATEGORY,
@@ -18,11 +17,7 @@ function normalizeTransactions(list) {
   }));
 }
 function sortLatestFirst(list) {
-  return list.sort((a, b) => {
-    if (a.year !== b.year) return b.year - a.year;
-    if (a.month !== b.month) return b.month - a.month;
-    return b.row - a.row; // แถวล่าง = ใหม่กว่า
-  });
+  return list.sort((a, b) => new Date(b.date) - new Date(a.date));
 }
 // ------------------ HOME ------------------
 async function initHome() {
