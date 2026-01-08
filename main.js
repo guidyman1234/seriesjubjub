@@ -7,6 +7,11 @@ async function fetchData() {
 }
 
 /* ------------------ NORMALIZE ------------------ */
+function monthToNumber(m) {
+  if (typeof m === "number") return m;
+  if (!m) return null;
+  return new Date(`${m} 1, 2000`).getMonth() + 1;
+}
 function normalizeTransactions(list) {
   return list.map((t, i) => {
     const amt = Number(t.AMOUNT ?? t.amount ?? 0);
@@ -14,7 +19,7 @@ function normalizeTransactions(list) {
       idx: i,
       date: t.DATE ?? t.date ?? "",
       year: Number(t.YEAR ?? t.year),
-      month: Number(t.MONTH ?? t.month),
+      month: monthToNumber(t.MONTH ?? t.month),
       amount: amt,
       category: t.CATEGORY ?? t.category ?? "",
       description: t.DESCRIPTION ?? t.description ?? ""
@@ -24,7 +29,9 @@ function normalizeTransactions(list) {
 
 /* ------------------ SORT ------------------ */
 function sortLatestFirst(list) {
-  return list.sort((a, b) => b.idx - a.idx);
+  return list.sort(
+    (a, b) => new Date(b.date) - new Date(a.date)
+  );
 }
 
 /* ------------------ SUMMARY (LATEST MONTH ONLY) ------------------ */
