@@ -6,6 +6,17 @@ async function fetchData() {
   const res = await fetch(API_URL);
   return await res.json();
 }
+function normalizeTransactions(list) {
+  return list.map(t => ({
+    year: Number(t.year ?? t.YEAR),
+    month: Number(t.month ?? t.MONTH),
+    row: Number(t.row ?? t.ROW),
+    date: t.date ?? t.DATE,
+    amount: Number(t.amount ?? t.AMOUNT),
+    category: t.category ?? t.CATEGORY,
+    description: t.description ?? t.DESCRIPTION
+  }));
+}
 function sortLatestFirst(list) {
   return list.sort((a, b) => {
     if (a.year !== b.year) return b.year - a.year;
@@ -15,8 +26,10 @@ function sortLatestFirst(list) {
 }
 // ------------------ HOME ------------------
 async function initHome() {
-  globalData = await fetchData();
- 
+  const raw = await fetchData();
+
+  raw.all = normalizeTransactions(raw.all);
+  globalData = raw;
 
   document.getElementById("cumulative-balance").textContent =
     "฿" + globalData.cumulative.currentBalance.toLocaleString();
@@ -30,9 +43,7 @@ async function initHome() {
   document.getElementById("monthly-balance").textContent =
     "฿" + globalData.monthly.balance.toLocaleString();
 
-  // 🔥 เอาทุกเดือน + sort ล่าสุด
   const latest = sortLatestFirst([...globalData.all]).slice(0, 30);
-
   renderTransactions("transaction-list", latest);
 }
 
@@ -72,12 +83,12 @@ function goTransactionsAll() { window.location.href = "transactions.html"; }
 
 // ------------------ TRANSACTIONS ------------------
 async function initTransactions() {
-  if (!globalData) globalData = await fetchData();
+  const raw = await fetchData();
+  raw.all = normalizeTransactions(raw.all);
+  globalData = raw;
 
   populateMonthYearSelects();
-  setTimeout (() => {
   filterTransactions();
-  }, 0);
 }
 
 function filterTransactions() {
