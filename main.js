@@ -31,9 +31,7 @@ async function initHome() {
     "฿" + globalData.monthly.balance.toLocaleString();
 
   // 🔥 เอาทุกเดือน + sort ล่าสุด
-  const latest = [...globalData.all]
-    .sort((a, b) => new Date(b.date) - new Date(a.date))
-    .slice(0, 30);
+  const latest = sortLatestFirst([...globalData.all]).slice(0, 30);
 
   renderTransactions("transaction-list", latest);
 }
@@ -86,9 +84,11 @@ function filterTransactions() {
   const m = Number(document.getElementById("month-select").value);
   const y = Number(document.getElementById("year-select").value);
 
-  const filtered = globalData.all
-    .filter(t => Number(t.month) === m && Number(t.year) === y)
-    .sort((a, b) => new Date(b.date) - new Date(a.date));
+  const filtered = sortLatestFirst(
+  globalData.all.filter(
+    t => Number(t.month) === m && Number(t.year) === y
+  )
+);
 
   renderTransactions("all-transaction-list", filtered);
 }
