@@ -13,6 +13,8 @@ function normalizeTransactions(list) {
     return {
       _idx: i,
       date: t.DATE || "",
+      year: Number(t.YEAR),
+      month: Number(t.MONTH),
       amount: amt,
       type: amt >= 0 ? "income" : "expense",
       category: t.CATEGORY || "",
@@ -45,6 +47,11 @@ async function initHome() {
   raw.all = normalizeTransactions(raw.all);
   globalData = raw;
 
+  const summary = calculateSummary(globalData.all);
+  setText("total-income", summary.income);
+  setText("total-expense", summary.expense);
+  setText("total-balance", summary.balance);
+
   const latest = sortLatestFirst([...globalData.all]).slice(0, 30);
   renderTransactions("transaction-list", latest);
 }
@@ -76,11 +83,6 @@ function renderTransactions(containerId, list) {
     container.appendChild(row);
   });
 }
-const summary = calculateSummary(globalData.all);
-
-setText("total-income", summary.income);
-setText("total-expense", summary.expense);
-setText("total-balance", summary.balance);
 
 // ------------------ NAV ------------------
 function goHome() { window.location.href = "index.html"; }
@@ -138,8 +140,8 @@ yearSelect.onchange = filterTransactions;
 // ------------------ FUND ------------------
 async function initFund() {
   if (!globalData) globalData = await fetchData();
-  const saved = Math.max(globalData.current.balance,0);
-  const goal = 50000;
+ const summary = calculateSummary(globalData.all);
+ const saved = Math.max(summary.balance, 0);
   document.getElementById("fund-saved").textContent = "฿"+saved.toLocaleString();
   document.getElementById("fund-goal").textContent = "฿"+goal.toLocaleString();
   document.getElementById("fund-progress").value = saved;
