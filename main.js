@@ -91,32 +91,34 @@ function renderTransactions(containerId, list) {
 /* ================== HOME ================== */
 async function initHome() {
   const raw = await fetchData();
-  const all = sortLatestFirst(normalizeTransactions(raw.all));
 
-  // summary (เดือนล่าสุด)
-  const s = calculateLatestMonthSummary(all);
-
-  document.getElementById("monthly-income").textContent =
-    "฿" + s.income.toLocaleString();
-  document.getElementById("monthly-expense").textContent =
-    "฿" + s.expense.toLocaleString();
-  document.getElementById("monthly-balance").textContent =
-    "฿" + s.balance.toLocaleString();
-
+  // TOTAL BALANCE
   document.getElementById("cumulative-balance").textContent =
     "฿" + raw.cumulative.currentBalance.toLocaleString();
 
-  // transactions (30 รายการล่าสุด ทุกเดือน)
-  renderTransactions("transaction-list", all.slice(0, 30));
+  // MONTHLY SUMMARY (เดือนล่าสุดจาก GAS)
+  document.getElementById("monthly-income").textContent =
+    "฿" + raw.current.income.toLocaleString();
+  document.getElementById("monthly-expense").textContent =
+    "฿" + Math.abs(raw.current.expense).toLocaleString();
+  document.getElementById("monthly-balance").textContent =
+    "฿" + raw.current.balance.toLocaleString();
+
+  // TRANSACTIONS (เดือนปัจจุบัน เรียงใหม่ → เก่า)
+  renderTransactions(
+    "transaction-list",
+    raw.monthly.list
+  );
 }
 
 /* ================== TRANSACTIONS PAGE ================== */
 async function initTransactions() {
   const raw = await fetchData();
-  window._txAll = sortLatestFirst(normalizeTransactions(raw.all));
 
-  populateMonthYearSelects();
-  filterTransactions();
+  // ใช้ monthly.list ตรง ๆ
+  window._txAll = raw.monthly.list;
+
+  renderTransactions("all-transaction-list", window._txAll);
 }
 
 function filterTransactions() {
