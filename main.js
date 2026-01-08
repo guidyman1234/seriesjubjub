@@ -1,66 +1,69 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbwWk-tBt9j77Wh1WJaetaObiKxcriRAtqLJO_CbGpIn3ypSaM0z7mBCLNRngbzODk0qtQ/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxbWaIPKFy6Ei52Qs6ZqMfgEhylJeuC93AQOBMQl6v_HX8GSfPSiYXWpvPDmq68ddlAjA/exec";
 
-/* ---------- FETCH ---------- */
-async function fetchData() {
-  const res = await fetch(API_URL);
-  return await res.json();
+document.addEventListener("DOMContentLoaded", loadHome);
+
+async function loadHome() {
+  try {
+    const res = await fetch(API_URL);
+    const data = await res.json();
+
+    renderSummary(data);
+    renderTransactions(data.transactions);
+
+  } catch (err) {
+    console.error("Load home error:", err);
+  }
 }
 
-/* ---------- RENDER ---------- */
-function renderTransactions(containerId, list) {
-  const container = document.getElementById(containerId);
-  if (!container) return;
+function renderSummary(data) {
+  // total balance
+  document.getElementById("totalBalance").innerText =
+    formatMoney(data.totalBalance);
 
+  // monthly summary (latest month)
+  document.getElementById("income").innerText =
+    formatMoney(data.monthly.income);
+
+  document.getElementById("expense").innerText =
+    formatMoney(data.monthly.expense);
+
+  document.getElementById("balance").innerText =
+    formatMoney(data.monthly.balance);
+}
+
+function renderTransactions(list) {
+  const container = document.getElementById("transactionList");
   container.innerHTML = "";
 
-  list.forEach(t => {
-    const isPlus = t.amount >= 0;
-
+  list.forEach(tx => {
     const row = document.createElement("div");
     row.className = "tx-row";
+
     row.innerHTML = `
       <div class="tx-top">
-        <span class="tx-date">${t.date}</span>
-        <span class="tx-amount ${isPlus ? "tx-plus" : "tx-minus"}">
-          ${isPlus ? "+" : "-"}฿${Math.abs(t.amount).toLocaleString()}
+        <span class="tx-date">${formatDate(tx.date)}</span>
+        <span class="tx-amount ${tx.type}">
+          ${tx.type === "income" ? "+" : "-"}฿${tx.amount}
         </span>
       </div>
-      <div class="tx-desc">
-        ${t.category}${t.description ? " · " + t.description : ""}
+      <div class="tx-bottom">
+        ${tx.category} · ${tx.note || ""}
       </div>
     `;
+
     container.appendChild(row);
   });
 }
 
-/* ========== HOME ========== */
-async function initHome() {
-  const raw = await fetchData();
-
-  // TOTAL BALANCE
-  document.getElementById("cumulative-balance").textContent =
-    "฿" + raw.cumulative.currentBalance.toLocaleString();
-
-  // MONTHLY SUMMARY (เดือนปัจจุบันจาก GAS)
-  document.getElementById("monthly-income").textContent =
-    "฿" + raw.current.income.toLocaleString();
-  document.getElementById("monthly-expense").textContent =
-    "฿" + Math.abs(raw.current.expense).toLocaleString();
-  document.getElementById("monthly-balance").textContent =
-    "฿" + raw.current.balance.toLocaleString();
-
-  // TRANSACTIONS (เดือนปัจจุบัน)
-  renderTransactions("transaction-list", raw.monthly.list);
+function formatMoney(n) {
+  return "฿" + Number(n).toLocaleString();
 }
 
-/* ========== TRANSACTIONS PAGE ========== */
-async function initTransactions() {
-  const raw = await fetchData();
-  renderTransactions("all-transaction-list", raw.monthly.list);
+function formatDate(d) {
+  const date = new Date(d);
+  return date.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric"
+  });
 }
-
-/* ---------- NAV ---------- */
-function goHome() { window.location.href = "index.html"; }
-function goFund() { window.location.href = "fund.html"; }
-function goAnalytics() { window.location.href = "analytics.html"; }
-function goTransactionsAll() { window.location.href = "transactions.html"; }
