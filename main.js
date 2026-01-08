@@ -66,8 +66,11 @@ async function initTransactions() {
   const data = await fetchData();
   ALL_TX = data.allTransactions;
 
+  // render ทั้งหมดก่อน (กันจอโล่ง)
+  renderTransactions("all-transaction-list", ALL_TX);
+
+  // แล้วค่อยสร้าง filter
   populateFilters();
-  filterTransactions();
 }
 
 function populateFilters() {
