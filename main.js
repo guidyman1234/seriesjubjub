@@ -87,7 +87,7 @@ function filterTransactions() {
   const y = Number(document.getElementById("year-select").value);
 
   const filtered = globalData.all
-    .filter(t => t.month === m && t.year === y)
+    .filter(t => Number(t.month) === m && Number(t.year) === y)
     .sort((a, b) => new Date(b.date) - new Date(a.date));
 
   renderTransactions("all-transaction-list", filtered);
@@ -112,6 +112,9 @@ function populateMonthYearSelects() {
 
   monthSelect.value = globalData.current.month;
   yearSelect.value = globalData.current.year;
+
+  monthSelect.onchange = filterTransactions;
+yearSelect.onchange = filterTransactions;
 }
 
 // ------------------ FUND ------------------
