@@ -7,16 +7,37 @@ async function fetchData() {
   return await res.json();
 }
 function normalizeTransactions(list) {
-  return list.map((t, i) => ({
-    _idx: i, // ← สำคัญ
-    date: t.DATE || t.date || "",
-    amount: Number(t.AMOUNT || t.amount || 0),
-    category: t.CATEGORY || t.category || "",
-    description: t.DESCRIPTION || t.description || ""
-  }));
+  return list.map((t, i) => {
+    const amt = Number(t.AMOUNT || t.amount || 0);
+
+    return {
+      _idx: i,
+      date: t.DATE || "",
+      amount: amt,
+      type: amt >= 0 ? "income" : "expense",
+      category: t.CATEGORY || "",
+      description: t.DESCRIPTION || ""
+    };
+  });
 }
 function sortLatestFirst(list) {
   return list.sort((a, b) => b._idx - a._idx);
+}
+
+function calculateSummary(list) {
+  let income = 0;
+  let expense = 0;
+
+  list.forEach(t => {
+    if (t.amount >= 0) income += t.amount;
+    else expense += Math.abs(t.amount);
+  });
+
+  return {
+    income,
+    expense,
+    balance: income - expense
+  };
 }
 // ------------------ HOME ------------------
 async function initHome() {
@@ -55,6 +76,11 @@ function renderTransactions(containerId, list) {
     container.appendChild(row);
   });
 }
+const summary = calculateSummary(globalData.all);
+
+setText("total-income", summary.income);
+setText("total-expense", summary.expense);
+setText("total-balance", summary.balance);
 
 // ------------------ NAV ------------------
 function goHome() { window.location.href = "index.html"; }
