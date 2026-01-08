@@ -7,36 +7,22 @@ async function fetchData() {
   return await res.json();
 }
 function normalizeTransactions(list) {
-  return list.map(t => ({
-    year: Number(t.year ?? t.YEAR),
-    month: Number(t.month ?? t.MONTH),
-    date: t.date ?? t.DATE,
-    amount: Number(t.amount ?? t.AMOUNT),
-    category: t.category ?? t.CATEGORY,
-    description: t.description ?? t.DESCRIPTION
+  return list.map((t, i) => ({
+    _idx: i, // ← สำคัญ
+    date: t.DATE || t.date || "",
+    amount: Number(t.AMOUNT || t.amount || 0),
+    category: t.CATEGORY || t.category || "",
+    description: t.DESCRIPTION || t.description || ""
   }));
 }
 function sortLatestFirst(list) {
-  return list.sort((a, b) => new Date(b.date) - new Date(a.date));
+  return list.sort((a, b) => b._idx - a._idx);
 }
 // ------------------ HOME ------------------
 async function initHome() {
   const raw = await fetchData();
-
   raw.all = normalizeTransactions(raw.all);
   globalData = raw;
-
-  document.getElementById("cumulative-balance").textContent =
-    "฿" + globalData.cumulative.currentBalance.toLocaleString();
-
-  document.getElementById("monthly-income").textContent =
-    "฿" + globalData.monthly.income.toLocaleString();
-
-  document.getElementById("monthly-expense").textContent =
-    "฿" + Math.abs(globalData.monthly.expense).toLocaleString();
-
-  document.getElementById("monthly-balance").textContent =
-    "฿" + globalData.monthly.balance.toLocaleString();
 
   const latest = sortLatestFirst([...globalData.all]).slice(0, 30);
   renderTransactions("transaction-list", latest);
