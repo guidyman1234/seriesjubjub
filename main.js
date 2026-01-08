@@ -1,69 +1,33 @@
 const API_URL = "https://script.google.com/macros/s/AKfycbxbWaIPKFy6Ei52Qs6ZqMfgEhylJeuC93AQOBMQl6v_HX8GSfPSiYXWpvPDmq68ddlAjA/exec";
 
-document.addEventListener("DOMContentLoaded", loadHome);
-
-async function loadHome() {
-  try {
-    const res = await fetch(API_URL);
-    const data = await res.json();
-
-    renderSummary(data);
-    renderTransactions(data.transactions);
-
-  } catch (err) {
-    console.error("Load home error:", err);
-  }
+/* ---------- FETCH ---------- */
+async function fetchData() {
+  const res = await fetch(API_URL);
+  return await res.json();
 }
 
-function renderSummary(data) {
-  // total balance
-  document.getElementById("totalBalance").innerText =
-    formatMoney(data.totalBalance);
+/* ---------- RENDER ---------- */
+function renderTransactions(containerId, list) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
 
-  // monthly summary (latest month)
-  document.getElementById("income").innerText =
-    formatMoney(data.monthly.income);
+  el.innerHTML = "";
 
-  document.getElementById("expense").innerText =
-    formatMoney(data.monthly.expense);
+  list.forEach(t => {
+    const div = document.createElement("div");
+    div.className = "tx-row";
 
-  document.getElementById("balance").innerText =
-    formatMoney(data.monthly.balance);
-}
-
-function renderTransactions(list) {
-  const container = document.getElementById("transactionList");
-  container.innerHTML = "";
-
-  list.forEach(tx => {
-    const row = document.createElement("div");
-    row.className = "tx-row";
-
-    row.innerHTML = `
+    div.innerHTML = `
       <div class="tx-top">
-        <span class="tx-date">${formatDate(tx.date)}</span>
-        <span class="tx-amount ${tx.type}">
-          ${tx.type === "income" ? "+" : "-"}฿${tx.amount}
+        <span class="tx-date">${t.date}</span>
+        <span class="tx-amount ${t.amount >= 0 ? "tx-plus" : "tx-minus"}">
+          ${t.amount >= 0 ? "+" : "-"}฿${Math.abs(t.amount).toLocaleString()}
         </span>
       </div>
-      <div class="tx-bottom">
-        ${tx.category} · ${tx.note || ""}
+      <div class="tx-desc">
+        ${t.category}${t.description ? " · " + t.description : ""}
       </div>
     `;
-
-    container.appendChild(row);
-  });
-}
-
-function formatMoney(n) {
-  return "฿" + Number(n).toLocaleString();
-}
-
-function formatDate(d) {
-  const date = new Date(d);
-  return date.toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric"
+    el.appendChild(div);
   });
 }
