@@ -31,3 +31,87 @@ function renderTransactions(containerId, list) {
     el.appendChild(div);
   });
 }
+async function initHome() {
+  const data = await fetchData();
+  const tx = data.allTransactions;
+
+  // TOTAL BALANCE
+  document.getElementById("cumulative-balance").textContent =
+    "฿" + data.cumulative.currentBalance.toLocaleString();
+
+  // MONTH SUMMARY (เดือนล่าสุดจริง)
+  const latest = tx[0];
+  let income = 0, expense = 0;
+
+  tx.forEach(t => {
+    if (t.year === latest.year && t.month === latest.month) {
+      if (t.amount >= 0) income += t.amount;
+      else expense += Math.abs(t.amount);
+    }
+  });
+
+  document.getElementById("monthly-income").textContent =
+    "฿" + income.toLocaleString();
+  document.getElementById("monthly-expense").textContent =
+    "฿" + expense.toLocaleString();
+  document.getElementById("monthly-balance").textContent =
+    "฿" + (income - expense).toLocaleString();
+
+  // TRANSACTIONS → ไหลย้อนหลัง (จำกัด 20 รายการ)
+  renderTransactions("transaction-list", tx.slice(0, 20));
+}
+let ALL_TX = [];
+
+async function initTransactions() {
+  const data = await fetchData();
+  ALL_TX = data.allTransactions;
+
+  populateFilters();
+  filterTransactions();
+}
+
+function populateFilters() {
+  const mSel = document.getElementById("month-select");
+  const ySel = document.getElementById("year-select");
+
+  const months = [...new Set(ALL_TX.map(t => t.month))].sort((a,b)=>a-b);
+  const years = [...new Set(ALL_TX.map(t => t.year))].sort((a,b)=>b-a);
+
+  mSel.innerHTML = "";
+  ySel.innerHTML = "";
+
+  months.forEach(m => {
+    const o = document.createElement("option");
+    o.value = m;
+    o.textContent = m;
+    mSel.appendChild(o);
+  });
+
+  years.forEach(y => {
+    const o = document.createElement("option");
+    o.value = y;
+    o.textContent = y;
+    ySel.appendChild(o);
+  });
+
+  mSel.value = ALL_TX[0].month;
+  ySel.value = ALL_TX[0].year;
+
+  mSel.onchange = filterTransactions;
+  ySel.onchange = filterTransactions;
+}
+
+function filterTransactions() {
+  const m = Number(document.getElementById("month-select").value);
+  const y = Number(document.getElementById("year-select").value);
+
+  const filtered = ALL_TX.filter(
+    t => t.month === m && t.year === y
+  );
+
+  renderTransactions("all-transaction-list", filtered);
+}
+function goHome() { location.href = "index.html"; }
+function goFund() { location.href = "fund.html"; }
+function goAnalytics() { location.href = "analytics.html"; }
+function goTransactionsAll() { location.href = "transactions.html"; }
