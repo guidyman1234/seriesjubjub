@@ -218,7 +218,21 @@ nav button {
   padding: 10px 12px 80px; /* เผื่อ nav ล่าง */
   background: #fff;
 }
+/* ===== FORCE FULL PAGE TRANSACTIONS ===== */
+.tx-full {
+  margin: 0 !important;
+  padding: 12px 12px 90px !important;
+  max-height: none !important;
+  overflow: visible !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+  background: #fff !important;
+}
 
+/* กันโดน inherited */
+.tx-full.transactions {
+  all: unset;
+}
 .tx-full .tx-row {
   border-bottom: 1px solid #eee;
 }
