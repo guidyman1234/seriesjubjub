@@ -63,46 +63,58 @@ async function initHome() {
 let ALL_TX = [];
 
 async function initTransactions() {
-  const data = await fetchData();
-  ALL_TX = data.allTransactions;
+  const raw = await fetchData();
 
-  // render ทั้งหมดก่อน (กันจอโล่ง)
+  // ✅ ใช้ allTransactions จาก GAS
+  ALL_TX = raw.allTransactions || [];
+
+  if (ALL_TX.length === 0) {
+    document.getElementById("all-transaction-list").innerHTML =
+      "<p>ไม่มีข้อมูล</p>";
+    return;
+  }
+
+  // 1. render ทั้งหมดก่อน
   renderTransactions("all-transaction-list", ALL_TX);
 
-  // แล้วค่อยสร้าง filter
-  populateFilters();
+  // 2. สร้าง dropdown เดือน / ปี
+  populateMonthYearSelects();
 }
 
-function populateFilters() {
-  const mSel = document.getElementById("month-select");
-  const ySel = document.getElementById("year-select");
 
+function populateMonthYearSelects() {
+  const monthSelect = document.getElementById("month-select");
+  const yearSelect = document.getElementById("year-select");
+
+  monthSelect.innerHTML = "";
+  yearSelect.innerHTML = "";
+
+  // ดึงเดือน/ปีที่มีจริงจากข้อมูล
   const months = [...new Set(ALL_TX.map(t => t.month))].sort((a,b)=>a-b);
-  const years = [...new Set(ALL_TX.map(t => t.year))].sort((a,b)=>b-a);
-
-  mSel.innerHTML = "";
-  ySel.innerHTML = "";
+  const years  = [...new Set(ALL_TX.map(t => t.year))].sort((a,b)=>b-a);
 
   months.forEach(m => {
-    const o = document.createElement("option");
-    o.value = m;
-    o.textContent = m;
-    mSel.appendChild(o);
+    const opt = document.createElement("option");
+    opt.value = m;
+    opt.textContent = `เดือน ${m}`;
+    monthSelect.appendChild(opt);
   });
 
   years.forEach(y => {
-    const o = document.createElement("option");
-    o.value = y;
-    o.textContent = y;
-    ySel.appendChild(o);
+    const opt = document.createElement("option");
+    opt.value = y;
+    opt.textContent = y;
+    yearSelect.appendChild(opt);
   });
 
-  mSel.value = ALL_TX[0].month;
-  ySel.value = ALL_TX[0].year;
+  // ค่าเริ่มต้น = เดือนล่าสุด
+  monthSelect.value = ALL_TX[0].month;
+  yearSelect.value = ALL_TX[0].year;
 
-  mSel.onchange = filterTransactions;
-  ySel.onchange = filterTransactions;
+  monthSelect.onchange = filterTransactions;
+  yearSelect.onchange = filterTransactions;
 }
+
 
 function filterTransactions() {
   const m = Number(document.getElementById("month-select").value);
@@ -114,6 +126,7 @@ function filterTransactions() {
 
   renderTransactions("all-transaction-list", filtered);
 }
+
 function goHome() { location.href = "index.html"; }
 function goFund() { location.href = "fund.html"; }
 function goAnalytics() { location.href = "analytics.html"; }
