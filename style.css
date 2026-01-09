@@ -213,3 +213,12 @@ nav button {
 .tx-minus {
   color: red;
 }
+/* ===== FULL PAGE TRANSACTIONS ===== */
+.tx-full {
+  padding: 10px 12px 80px; /* เผื่อ nav ล่าง */
+  background: #fff;
+}
+
+.tx-full .tx-row {
+  border-bottom: 1px solid #eee;
+}
