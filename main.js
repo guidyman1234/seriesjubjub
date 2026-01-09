@@ -64,8 +64,6 @@ let ALL_TX = [];
 
 async function initTransactions() {
   const raw = await fetchData();
-
-  // ✅ ใช้ allTransactions จาก GAS
   ALL_TX = raw.allTransactions || [];
 
   if (ALL_TX.length === 0) {
@@ -74,11 +72,10 @@ async function initTransactions() {
     return;
   }
 
-  // 1. render ทั้งหมดก่อน
-  renderTransactions("all-transaction-list", ALL_TX);
-
-  // 2. สร้าง dropdown เดือน / ปี
   populateMonthYearSelects();
+
+  // ✅ render เดือนล่าสุดทันที
+  filterTransactions();
 }
 
 
@@ -89,8 +86,7 @@ function populateMonthYearSelects() {
   monthSelect.innerHTML = "";
   yearSelect.innerHTML = "";
 
-  // ดึงเดือน/ปีที่มีจริงจากข้อมูล
-  const months = [...new Set(ALL_TX.map(t => t.month))].sort((a,b)=>a-b);
+  const months = [...new Set(ALL_TX.map(t => t.month))].sort((a,b)=>b-a);
   const years  = [...new Set(ALL_TX.map(t => t.year))].sort((a,b)=>b-a);
 
   months.forEach(m => {
@@ -107,9 +103,9 @@ function populateMonthYearSelects() {
     yearSelect.appendChild(opt);
   });
 
-  // ค่าเริ่มต้น = เดือนล่าสุด
-  monthSelect.value = ALL_TX[0].month;
-  yearSelect.value = ALL_TX[0].year;
+  // ค่า default = ล่าสุด
+  monthSelect.value = months[0];
+  yearSelect.value = years[0];
 
   monthSelect.onchange = filterTransactions;
   yearSelect.onchange = filterTransactions;
