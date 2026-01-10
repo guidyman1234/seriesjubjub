@@ -116,12 +116,14 @@ function filterTransactions() {
   const m = Number(document.getElementById("month-select").value);
   const y = Number(document.getElementById("year-select").value);
 
-  const filtered = ALL_TX.filter(
-    t => t.month === m && t.year === y
+  const filtered = ALL_TX.filter(t =>
+    Number(t.month) === m &&
+    Number(t.year) === y
   );
 
   renderTransactions("all-transaction-list", filtered);
 }
+
 
 function goHome() { location.href = "index.html"; }
 function goFund() { location.href = "fund.html"; }
