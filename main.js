@@ -1,17 +1,29 @@
-const API_URL = "https://script.google.com/macros/s/AKfycbyVt9RHPNWWgzbOpjlyMk014Ir7MoePNCcrO9QPPh2RIg3VqZM03rpoE4wF1JIjr3LTGw/exec";
+const API_URL =
+  "https://script.google.com/macros/s/AKfycbyVt9RHPNWWgzbOpjlyMk014Ir7MoePNCcrO9QPPh2RIg3VqZM03rpoE4wF1JIjr3LTGw/exec";
 
-/* ---------- FETCH ---------- */
+/* ================= FETCH ================= */
 async function fetchData() {
-  const res = await fetch(API_URL);
-  return await res.json();
+  try {
+    const res = await fetch(API_URL);
+    if (!res.ok) throw new Error(res.status);
+    return await res.json();
+  } catch (e) {
+    alert("API ERROR: " + e.message);
+    throw e;
+  }
 }
 
-/* ---------- RENDER ---------- */
+/* ================= RENDER TX ================= */
 function renderTransactions(containerId, list) {
   const el = document.getElementById(containerId);
   if (!el) return;
 
   el.innerHTML = "";
+
+  if (!list || list.length === 0) {
+    el.innerHTML = "<p>ไม่มีข้อมูล</p>";
+    return;
+  }
 
   list.forEach(t => {
     const div = document.createElement("div");
@@ -25,26 +37,39 @@ function renderTransactions(containerId, list) {
         </span>
       </div>
       <div class="tx-desc">
-        ${t.category}${t.description ? " · " + t.description : ""}
+        ${t.category || ""}${t.description ? " · " + t.description : ""}
       </div>
     `;
+
     el.appendChild(div);
   });
 }
+
+/* ================= HOME ================= */
 async function initHome() {
   const data = await fetchData();
-  const tx = data.allTransactions;
+  const tx = data.allTransactions || [];
 
-  // TOTAL BALANCE
-  document.getElementById("cumulative-balance").textContent =
-    "฿" + data.cumulative.currentBalance.toLocaleString();
+  /* TOTAL BALANCE (fix mobile crash) */
+  const lastBal =
+    data.cumulative?.[data.cumulative.length - 1]?.balance || 0;
 
-  // MONTH SUMMARY (เดือนล่าสุดจริง)
+  const balEl = document.getElementById("cumulative-balance");
+  if (balEl)
+    balEl.textContent = "฿" + lastBal.toLocaleString();
+
+  if (tx.length === 0) return;
+
+  /* MONTH SUMMARY = เดือนล่าสุดจริง */
   const latest = tx[0];
-  let income = 0, expense = 0;
+  let income = 0,
+    expense = 0;
 
   tx.forEach(t => {
-    if (t.year === latest.year && t.month === latest.month) {
+    if (
+      Number(t.year) === Number(latest.year) &&
+      Number(t.month) === Number(latest.month)
+    ) {
       if (t.amount >= 0) income += t.amount;
       else expense += Math.abs(t.amount);
     }
@@ -57,9 +82,11 @@ async function initHome() {
   document.getElementById("monthly-balance").textContent =
     "฿" + (income - expense).toLocaleString();
 
-  // TRANSACTIONS → ไหลย้อนหลัง (จำกัด 20 รายการ)
+  /* TRANSACTIONS STREAM */
   renderTransactions("transaction-list", tx.slice(0, 20));
 }
+
+/* ================= TRANSACTIONS PAGE ================= */
 let ALL_TX = [];
 
 async function initTransactions() {
@@ -73,21 +100,24 @@ async function initTransactions() {
   }
 
   populateMonthYearSelects();
-
-  // ✅ render เดือนล่าสุดทันที
   filterTransactions();
 }
-
 
 function populateMonthYearSelects() {
   const monthSelect = document.getElementById("month-select");
   const yearSelect = document.getElementById("year-select");
 
+  if (!monthSelect || !yearSelect) return;
+
   monthSelect.innerHTML = "";
   yearSelect.innerHTML = "";
 
-  const months = [...new Set(ALL_TX.map(t => t.month))].sort((a,b)=>b-a);
-  const years  = [...new Set(ALL_TX.map(t => t.year))].sort((a,b)=>b-a);
+  const months = [...new Set(ALL_TX.map(t => Number(t.month)))].sort(
+    (a, b) => b - a
+  );
+  const years = [...new Set(ALL_TX.map(t => Number(t.year)))].sort(
+    (a, b) => b - a
+  );
 
   months.forEach(m => {
     const opt = document.createElement("option");
@@ -103,7 +133,6 @@ function populateMonthYearSelects() {
     yearSelect.appendChild(opt);
   });
 
-  // ค่า default = ล่าสุด
   monthSelect.value = months[0];
   yearSelect.value = years[0];
 
@@ -111,21 +140,37 @@ function populateMonthYearSelects() {
   yearSelect.onchange = filterTransactions;
 }
 
-
 function filterTransactions() {
   const m = Number(document.getElementById("month-select").value);
   const y = Number(document.getElementById("year-select").value);
 
-  const filtered = ALL_TX.filter(t =>
-    Number(t.month) === m &&
-    Number(t.year) === y
+  const filtered = ALL_TX.filter(
+    t => Number(t.month) === m && Number(t.year) === y
   );
 
   renderTransactions("all-transaction-list", filtered);
 }
 
+/* ================= FUND (SAFE) ================= */
+function initFund() {
+  // placeholder กัน JS crash
+}
 
-function goHome() { location.href = "index.html"; }
-function goFund() { location.href = "fund.html"; }
-function goAnalytics() { location.href = "analytics.html"; }
-function goTransactionsAll() { location.href = "transactions.html"; }
+/* ================= ANALYTICS (SAFE) ================= */
+function initAnalytics() {
+  // placeholder กัน JS crash
+}
+
+/* ================= NAV ================= */
+function goHome() {
+  location.href = "index.html";
+}
+function goFund() {
+  location.href = "fund.html";
+}
+function goAnalytics() {
+  location.href = "analytics.html";
+}
+function goTransactionsAll() {
+  location.href = "transactions.html";
+}
