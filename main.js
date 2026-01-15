@@ -112,25 +112,29 @@ function populateMonthYearSelects() {
   const monthSelect = document.getElementById("month-select");
   const yearSelect = document.getElementById("year-select");
 
-  if (!monthSelect || !yearSelect) return;
-
   monthSelect.innerHTML = "";
   yearSelect.innerHTML = "";
 
-  const months = [...new Set(ALL_TX.map(t => Number(t.month)))].sort(
-    (a, b) => b - a
-  );
-  const years = [...new Set(ALL_TX.map(t => Number(t.year)))].sort(
-    (a, b) => b - a
-  );
-
-  months.forEach(m => {
-    const opt = document.createElement("option");
-    opt.value = m;
-    opt.textContent = `เดือน ${m}`;
-    monthSelect.appendChild(opt);
+  // ดึงจาก date เท่านั้น (ชัวร์)
+  const pairs = ALL_TX.map(t => {
+    const d = new Date(t.date);
+    return {
+      month: d.getMonth() + 1,
+      year: d.getFullYear()
+    };
   });
 
+  // unique year
+  const years = [...new Set(pairs.map(p => p.year))].sort((a,b)=>b-a);
+
+  // unique month-year pair
+  const monthYearMap = {};
+  pairs.forEach(p => {
+    if (!monthYearMap[p.year]) monthYearMap[p.year] = new Set();
+    monthYearMap[p.year].add(p.month);
+  });
+
+  // เติม year
   years.forEach(y => {
     const opt = document.createElement("option");
     opt.value = y;
@@ -138,12 +142,31 @@ function populateMonthYearSelects() {
     yearSelect.appendChild(opt);
   });
 
-  monthSelect.value = months[0];
-  yearSelect.value = years[0];
+  // เติมเดือนตามปี
+  function updateMonths() {
+    const y = Number(yearSelect.value);
+    monthSelect.innerHTML = "";
+
+    [...monthYearMap[y]].sort((a,b)=>b-a).forEach(m => {
+      const opt = document.createElement("option");
+      opt.value = m;
+      opt.textContent = `เดือน ${m}`;
+      monthSelect.appendChild(opt);
+    });
+  }
+
+  yearSelect.onchange = () => {
+    updateMonths();
+    filterTransactions();
+  };
 
   monthSelect.onchange = filterTransactions;
-  yearSelect.onchange = filterTransactions;
+
+  // ค่าเริ่มต้น = ล่าสุด
+  yearSelect.value = years[0];
+  updateMonths();
 }
+
 
 function filterTransactions() {
   const m = Number(document.getElementById("month-select").value);
@@ -157,8 +180,15 @@ function filterTransactions() {
     );
   });
 
+  if (filtered.length === 0) {
+    document.getElementById("all-transaction-list").innerHTML =
+      "<p>ไม่มีข้อมูล</p>";
+    return;
+  }
+
   renderTransactions("all-transaction-list", filtered);
 }
+
 
 /* ================= FUND (SAFE) ================= */
 function initFund() {
