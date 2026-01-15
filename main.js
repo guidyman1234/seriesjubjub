@@ -61,26 +61,31 @@ async function initHome() {
   if (tx.length === 0) return;
 
   /* MONTH SUMMARY = เดือนล่าสุดจริง */
-  const latest = tx[0];
-  let income = 0,
-    expense = 0;
+ // หาเดือนล่าสุดจริงจาก date
+const latestDate = new Date(tx[0].date);
+const latestMonth = latestDate.getMonth() + 1;
+const latestYear = latestDate.getFullYear();
 
-  tx.forEach(t => {
-    if (
-      Number(t.year) === Number(latest.year) &&
-      Number(t.month) === Number(latest.month)
-    ) {
-      if (t.amount >= 0) income += t.amount;
-      else expense += Math.abs(t.amount);
-    }
-  });
+let income = 0;
+let expense = 0;
 
-  document.getElementById("monthly-income").textContent =
-    "฿" + income.toLocaleString();
-  document.getElementById("monthly-expense").textContent =
-    "฿" + expense.toLocaleString();
-  document.getElementById("monthly-balance").textContent =
-    "฿" + (income - expense).toLocaleString();
+tx.forEach(t => {
+  const d = new Date(t.date);
+  if (
+    d.getMonth() + 1 === latestMonth &&
+    d.getFullYear() === latestYear
+  ) {
+    if (t.amount >= 0) income += t.amount;
+    else expense += Math.abs(t.amount);
+  }
+});
+
+document.getElementById("monthly-income").textContent =
+  "฿" + income.toLocaleString();
+document.getElementById("monthly-expense").textContent =
+  "฿" + expense.toLocaleString();
+document.getElementById("monthly-balance").textContent =
+  "฿" + (income - expense).toLocaleString();
 
   /* TRANSACTIONS STREAM */
   renderTransactions("transaction-list", tx.slice(0, 20));
@@ -144,9 +149,13 @@ function filterTransactions() {
   const m = Number(document.getElementById("month-select").value);
   const y = Number(document.getElementById("year-select").value);
 
-  const filtered = ALL_TX.filter(
-    t => Number(t.month) === m && Number(t.year) === y
-  );
+  const filtered = ALL_TX.filter(t => {
+    const d = new Date(t.date);
+    return (
+      d.getMonth() + 1 === m &&
+      d.getFullYear() === y
+    );
+  });
 
   renderTransactions("all-transaction-list", filtered);
 }
