@@ -213,3 +213,92 @@ function goAnalytics() {
 function goTransactionsAll() {
   location.href = "transactions.html";
 }
+
+async function initAnalytics() {
+  const data = await fetchData();
+  const tx = data.allTransactions;
+
+  if (!tx || tx.length === 0) {
+    document.body.insertAdjacentHTML(
+      "beforeend",
+      "<p>ไม่มีข้อมูลสำหรับวิเคราะห์</p>"
+    );
+    return;
+  }
+
+  const select = document.getElementById("analytics-period");
+  const ctx = document.getElementById("analytics-chart").getContext("2d");
+
+  let chart;
+
+  function render(type) {
+    if (chart) chart.destroy();
+
+    if (type === "daily") {
+      chart = renderDaily(ctx, tx);
+    } else {
+      chart = renderMonthly(ctx, tx);
+    }
+  }
+
+  select.onchange = () => render(select.value);
+  render(select.value);
+}
+
+function renderDaily(ctx, tx) {
+  const map = {};
+
+  tx.forEach(t => {
+    const d = t.date;
+    map[d] = (map[d] || 0) + t.amount;
+  });
+
+  let balance = 0;
+  const labels = [];
+  const data = [];
+
+  Object.keys(map).sort().forEach(d => {
+    balance += map[d];
+    labels.push(d);
+    data.push(balance);
+  });
+
+  return new Chart(ctx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [{
+        label: "Balance",
+        data,
+        fill: false,
+        tension: 0.3
+      }]
+    }
+  });
+}
+
+function renderMonthly(ctx, tx) {
+  const map = {};
+
+  tx.forEach(t => {
+    if (t.amount < 0) {
+      const d = new Date(t.date);
+      const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+      map[key] = (map[key] || 0) + Math.abs(t.amount);
+    }
+  });
+
+  const labels = Object.keys(map).sort();
+  const data = labels.map(l => map[l]);
+
+  return new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [{
+        label: "Expenses",
+        data
+      }]
+    }
+  });
+}
