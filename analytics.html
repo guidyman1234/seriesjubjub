@@ -6,26 +6,22 @@
 <title>Analytics</title>
 <link rel="stylesheet" href="style.css">
 </head>
-<body>
-<header>
-  <h2>Analytics</h2>
-  <select id="analytics-period">
-    <option value="daily">Daily</option>
-    <option value="monthly">Monthly</option>
-  </select>
-</header>
+<body onload="initAnalytics()">
 
-<canvas id="analytics-chart"></canvas>
+<section id="analyticsPage">
 
-<nav>
-  <button onclick="goHome()">🏠</button>
-  <button onclick="goFund()">💰</button>
-</nav>
+  <div class="chart-box">
+    <h3>Expense by Category</h3>
+    <canvas id="categoryChart"></canvas>
+  </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="main.js"></script>
-<script>
-initAnalytics();
-</script>
+  <div class="chart-box">
+    <h3>Monthly Income vs Expense</h3>
+    <canvas id="monthlyChart"></canvas>
+  </div>
+
+</section>
+
 </body>
+
 </html>
