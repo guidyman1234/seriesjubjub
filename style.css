@@ -236,3 +236,49 @@ nav button {
 .tx-full .tx-row {
   border-bottom: 1px solid #eee;
 }
+#analyticsPage {
+  padding: 16px;
+  max-width: 100%;
+}
+
+.page-title {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.chart-card,
+.list-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+canvas {
+  width: 100% !important;
+  height: auto !important;
+}
+
+#categoryList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+#categoryList li {
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+  font-size: 14px;
+}
+
+#categoryList li:last-child {
+  border-bottom: none;
+}
+
+@media (min-width: 768px) {
+  #analyticsPage {
+    max-width: 900px;
+    margin: auto;
+  }
+}
