@@ -173,73 +173,119 @@ function filterTransactions() {
 }
 
 /* ================= ANALYTICS ================= */
+/* ================= ANALYTICS ================= */
+let CATEGORY_CHART = null;
+let MONTHLY_CHART = null;
+let ANALYTICS_TX = [];
+let SELECTED_CATEGORY = null;
+
 async function initAnalytics() {
-  const periodEl = document.getElementById("analytics-period");
-  const canvasEl = document.getElementById("analytics-chart");
-  if (!periodEl || !canvasEl) return;
-
   const data = await fetchData();
-  const tx = data.allTransactions || [];
-  if (tx.length === 0) return;
+  ANALYTICS_TX = data.allTransactions || [];
 
-  const ctx = canvasEl.getContext("2d");
-  let chart;
+  if (ANALYTICS_TX.length === 0) return;
 
-  function render(type) {
-    if (chart) chart.destroy();
-    chart = type === "daily"
-      ? renderDaily(ctx, tx)
-      : renderMonthly(ctx, tx);
-  }
-
-  periodEl.onchange = () => render(periodEl.value);
-  render(periodEl.value);
+  renderCategoryChart();
+  renderMonthlyChart();
 }
 
-function renderDaily(ctx, tx) {
+/* ===== Expense by Category (PIE) ===== */
+function renderCategoryChart() {
   const map = {};
-  tx.forEach(t => (map[t.date] = (map[t.date] || 0) + t.amount));
 
-  let balance = 0;
-  const labels = [];
-  const data = [];
-
-  Object.keys(map).sort().forEach(d => {
-    balance += map[d];
-    labels.push(d);
-    data.push(balance);
+  ANALYTICS_TX.forEach(t => {
+    if (t.amount < 0) {
+      map[t.category] = (map[t.category] || 0) + Math.abs(t.amount);
+    }
   });
 
-  return new Chart(ctx, {
-    type: "line",
+  const labels = Object.keys(map);
+  const values = Object.values(map);
+
+  const ctx = document.getElementById("categoryChart");
+  if (!ctx) return;
+
+  if (CATEGORY_CHART) CATEGORY_CHART.destroy();
+
+  CATEGORY_CHART = new Chart(ctx, {
+    type: "pie",
     data: {
       labels,
-      datasets: [{ label: "Balance", data, tension: 0.3 }]
+      datasets: [{ data: values }]
+    },
+    options: {
+      responsive: true,
+      onClick: (_, elements) => {
+        if (!elements.length) return;
+        const index = elements[0].index;
+        SELECTED_CATEGORY = labels[index];
+        renderCategoryList();
+      }
     }
   });
 }
 
-function renderMonthly(ctx, tx) {
+/* ===== Monthly Income vs Expense (BAR) ===== */
+function renderMonthlyChart() {
   const map = {};
-  tx.forEach(t => {
-    if (t.amount < 0) {
-      const d = new Date(t.date);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      map[key] = (map[key] || 0) + Math.abs(t.amount);
-    }
+
+  ANALYTICS_TX.forEach(t => {
+    const d = new Date(t.date);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+
+    if (!map[key]) map[key] = { income: 0, expense: 0 };
+
+    if (t.amount >= 0) map[key].income += t.amount;
+    else map[key].expense += Math.abs(t.amount);
   });
 
   const labels = Object.keys(map).sort();
-  const data = labels.map(l => map[l]);
+  const income = labels.map(k => map[k].income);
+  const expense = labels.map(k => map[k].expense);
 
-  return new Chart(ctx, {
+  const ctx = document.getElementById("monthlyChart");
+  if (!ctx) return;
+
+  if (MONTHLY_CHART) MONTHLY_CHART.destroy();
+
+  MONTHLY_CHART = new Chart(ctx, {
     type: "bar",
     data: {
       labels,
-      datasets: [{ label: "Expenses", data }]
+      datasets: [
+        { label: "Income", data: income },
+        { label: "Expense", data: expense }
+      ]
+    },
+    options: {
+      responsive: true
     }
   });
 }
+
+/* ===== List by Category ===== */
+function renderCategoryList() {
+  const listEl = document.getElementById("categoryList");
+  const titleEl = document.getElementById("categoryTitle");
+
+  if (!listEl || !titleEl || !SELECTED_CATEGORY) return;
+
+  titleEl.textContent = `Transactions: ${SELECTED_CATEGORY}`;
+  listEl.innerHTML = "";
+
+  ANALYTICS_TX
+    .filter(t => t.category === SELECTED_CATEGORY)
+    .forEach(t => {
+      const li = document.createElement("li");
+      li.innerHTML = `
+        <strong>${t.date}</strong><br>
+        ${t.description || ""}<br>
+        ฿${Math.abs(t.amount).toLocaleString()}
+      `;
+      listEl.appendChild(li);
+    });
+}
+
 
 /* ================= NAV ================= */
 function goHome() { location.href = "index.html"; }
