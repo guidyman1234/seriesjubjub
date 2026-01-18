@@ -174,26 +174,69 @@ function filterTransactions() {
 
 /* ================= ANALYTICS ================= */
 /* ================= ANALYTICS ================= */
-let CATEGORY_CHART = null;
-let MONTHLY_CHART = null;
 let ANALYTICS_TX = [];
-let SELECTED_CATEGORY = null;
+let CAT_CHART = null;
+let MONTH_CHART = null;
 
 async function initAnalytics() {
   const data = await fetchData();
   ANALYTICS_TX = data.allTransactions || [];
-
   if (ANALYTICS_TX.length === 0) return;
 
-  renderCategoryChart();
-  renderMonthlyChart();
+  initAnalyticsSelectors();
+  renderAnalytics();
 }
 
-/* ===== Expense by Category (PIE) ===== */
-function renderCategoryChart() {
-  const map = {};
+/* ===== SELECTORS ===== */
+function initAnalyticsSelectors() {
+  const yearEl = document.getElementById("analytics-year");
+  const monthEl = document.getElementById("analytics-month");
+  const catEl = document.getElementById("analytics-category");
 
-  ANALYTICS_TX.forEach(t => {
+  const dates = ANALYTICS_TX.map(t => new Date(t.date));
+  const years = [...new Set(dates.map(d => d.getFullYear()))].sort((a,b)=>b-a);
+
+  yearEl.innerHTML = "";
+  years.forEach(y => yearEl.add(new Option(y, y)));
+
+  function updateMonths() {
+    const y = Number(yearEl.value);
+    const months = [...new Set(
+      dates.filter(d => d.getFullYear() === y).map(d => d.getMonth()+1)
+    )].sort((a,b)=>b-a);
+
+    monthEl.innerHTML = "";
+    months.forEach(m => monthEl.add(new Option(`เดือน ${m}`, m)));
+  }
+
+  yearEl.onchange = () => { updateMonths(); renderAnalytics(); };
+  monthEl.onchange = renderAnalytics;
+  catEl.onchange = renderAnalytics;
+
+  yearEl.value = years[0];
+  updateMonths();
+}
+
+/* ===== MAIN RENDER ===== */
+function renderAnalytics() {
+  const y = Number(document.getElementById("analytics-year").value);
+  const m = Number(document.getElementById("analytics-month").value);
+  const cat = document.getElementById("analytics-category").value;
+
+  const filtered = ANALYTICS_TX.filter(t => {
+    const d = new Date(t.date);
+    return d.getFullYear() === y && d.getMonth()+1 === m;
+  });
+
+  renderCategoryChart(filtered);
+  renderMonthlyChart(filtered);
+  renderTransactionList(filtered, cat);
+}
+
+/* ===== CATEGORY PIE ===== */
+function renderCategoryChart(tx) {
+  const map = {};
+  tx.forEach(t => {
     if (t.amount < 0) {
       map[t.category] = (map[t.category] || 0) + Math.abs(t.amount);
     }
@@ -202,12 +245,14 @@ function renderCategoryChart() {
   const labels = Object.keys(map);
   const values = Object.values(map);
 
+  const catEl = document.getElementById("analytics-category");
+  catEl.innerHTML = `<option value="">All Categories</option>`;
+  labels.forEach(c => catEl.add(new Option(c, c)));
+
   const ctx = document.getElementById("categoryChart");
-  if (!ctx) return;
+  if (CAT_CHART) CAT_CHART.destroy();
 
-  if (CATEGORY_CHART) CATEGORY_CHART.destroy();
-
-  CATEGORY_CHART = new Chart(ctx, {
+  CAT_CHART = new Chart(ctx, {
     type: "pie",
     data: {
       labels,
@@ -215,75 +260,89 @@ function renderCategoryChart() {
     },
     options: {
       responsive: true,
-      onClick: (_, elements) => {
-        if (!elements.length) return;
-        const index = elements[0].index;
-        SELECTED_CATEGORY = labels[index];
-        renderCategoryList();
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: c =>
+              `${c.label}: ฿${c.parsed.toLocaleString()}`
+          }
+        }
+      },
+      onClick: (_, el) => {
+        if (!el.length) return;
+        catEl.value = labels[el[0].index];
+        renderAnalytics();
       }
     }
   });
 }
 
-/* ===== Monthly Income vs Expense (BAR) ===== */
-function renderMonthlyChart() {
-  const map = {};
-
-  ANALYTICS_TX.forEach(t => {
-    const d = new Date(t.date);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-
-    if (!map[key]) map[key] = { income: 0, expense: 0 };
-
-    if (t.amount >= 0) map[key].income += t.amount;
-    else map[key].expense += Math.abs(t.amount);
+/* ===== MONTHLY BAR ===== */
+function renderMonthlyChart(tx) {
+  let income = 0, expense = 0;
+  tx.forEach(t => {
+    if (t.amount >= 0) income += t.amount;
+    else expense += Math.abs(t.amount);
   });
 
-  const labels = Object.keys(map).sort();
-  const income = labels.map(k => map[k].income);
-  const expense = labels.map(k => map[k].expense);
-
   const ctx = document.getElementById("monthlyChart");
-  if (!ctx) return;
+  if (MONTH_CHART) MONTH_CHART.destroy();
 
-  if (MONTHLY_CHART) MONTHLY_CHART.destroy();
-
-  MONTHLY_CHART = new Chart(ctx, {
+  MONTH_CHART = new Chart(ctx, {
     type: "bar",
     data: {
-      labels,
-      datasets: [
-        { label: "Income", data: income },
-        { label: "Expense", data: expense }
-      ]
+      labels: ["Income", "Expense"],
+      datasets: [{
+        data: [income, expense]
+      }]
     },
     options: {
-      responsive: true
+      responsive: true,
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: c => `฿${c.parsed.y.toLocaleString()}`
+          }
+        }
+      }
     }
   });
 }
 
-/* ===== List by Category ===== */
-function renderCategoryList() {
-  const listEl = document.getElementById("categoryList");
-  const titleEl = document.getElementById("categoryTitle");
+/* ===== TRANSACTION LIST ===== */
+function renderTransactionList(tx, category) {
+  const el = document.getElementById("categoryTxList");
+  const title = document.getElementById("categoryTitle");
 
-  if (!listEl || !titleEl || !SELECTED_CATEGORY) return;
+  el.innerHTML = "";
 
-  titleEl.textContent = `Transactions: ${SELECTED_CATEGORY}`;
-  listEl.innerHTML = "";
+  const list = category
+    ? tx.filter(t => t.category === category)
+    : tx;
 
-  ANALYTICS_TX
-    .filter(t => t.category === SELECTED_CATEGORY)
-    .forEach(t => {
-      const li = document.createElement("li");
-      li.innerHTML = `
-        <strong>${t.date}</strong><br>
-        ${t.description || ""}<br>
-        ฿${Math.abs(t.amount).toLocaleString()}
-      `;
-      listEl.appendChild(li);
-    });
+  title.textContent = category
+    ? `Transactions: ${category}`
+    : "Transactions";
+
+  if (list.length === 0) {
+    el.innerHTML = "<p>ไม่มีข้อมูล</p>";
+    return;
+  }
+
+  list.forEach(t => {
+    const div = document.createElement("div");
+    div.className = "tx-row";
+    div.innerHTML = `
+      <div class="tx-top">
+        <span>${t.date}</span>
+        <span class="${t.amount>=0?'tx-plus':'tx-minus'}">
+          ฿${Math.abs(t.amount).toLocaleString()}
+        </span>
+      </div>
+      <div class="tx-desc">${t.category} · ${t.description||""}</div>
+    `;
+    el.appendChild(div);
+  });
 }
 
 
