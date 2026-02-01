@@ -338,6 +338,67 @@ function renderTransactionList(tx, category) {
     el.appendChild(div);
   });
 }
+let analyticsChart;
+let allTx = [];
+
+async function initAnalytics() {
+  const res = await fetch(API_URL);
+  allTx = await res.json();
+
+  setupFilters();
+  renderAnalytics();
+}
+
+function setupFilters() {
+  const years = [...new Set(allTx.map(t => t.YEAR))];
+  const months = [...new Set(allTx.map(t => t.MONTH))];
+  const locations = [...new Set(allTx.map(t => t.LOCATION))];
+  const categories = [...new Set(allTx.map(t => t.CATEGORY))];
+
+  fillSelect("filterYear", years, true);
+  fillSelect("filterMonth", months, true);
+  fillSelect("filterLocation", locations, true);
+  fillSelect("filterCategory", categories, true);
+
+  document
+    .querySelectorAll(".filter-row select")
+    .forEach(el => el.addEventListener("change", renderAnalytics));
+}
+
+function fillSelect(id, items, allowAll) {
+  const el = document.getElementById(id);
+  el.innerHTML = "";
+
+  if (allowAll) {
+    el.innerHTML += `<option value="ALL">All</option>`;
+  }
+
+  items.forEach(v => {
+    el.innerHTML += `<option value="${v}">${v}</option>`;
+  });
+}
+
+function renderAnalytics() {
+  const year = filterValue("filterYear");
+  const month = filterValue("filterMonth");
+  const location = filterValue("filterLocation");
+  const category = filterValue("filterCategory");
+
+  const filtered = allTx.filter(t =>
+    (year === "ALL" || t.YEAR == year) &&
+    (month === "ALL" || t.MONTH == month) &&
+    (location === "ALL" || t.LOCATION === location) &&
+    (category === "ALL" || t.CATEGORY === category)
+  );
+
+  renderSummary(filtered);
+  renderChart(filtered);
+  renderTxList(filtered);
+}
+
+function filterValue(id) {
+  return document.getElementById(id).value;
+}
 
 
 /* ================= NAV ================= */
