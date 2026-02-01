@@ -173,15 +173,13 @@ function filterTransactions() {
 }
 
 /* ================= ANALYTICS ================= */
-/* ================= ANALYTICS ================= */
 let ANALYTICS_TX = [];
-let CAT_CHART = null;
-let MONTH_CHART = null;
+let CAT_CHART, PIE_CHART, BAR_CHART;
 
 async function initAnalytics() {
   const data = await fetchData();
   ANALYTICS_TX = data.allTransactions || [];
-  if (ANALYTICS_TX.length === 0) return;
+  if (!ANALYTICS_TX.length) return;
 
   initAnalyticsSelectors();
   renderAnalytics();
@@ -219,9 +217,9 @@ function initAnalyticsSelectors() {
 
 /* ===== MAIN RENDER ===== */
 function renderAnalytics() {
-  const y = Number(document.getElementById("analytics-year").value);
-  const m = Number(document.getElementById("analytics-month").value);
-  const cat = document.getElementById("analytics-category").value;
+  const y = Number(analytics-year.value);
+  const m = Number(analytics-month.value);
+  const cat = analytics-category.value;
 
   const filtered = ANALYTICS_TX.filter(t => {
     const d = new Date(t.date);
@@ -229,7 +227,7 @@ function renderAnalytics() {
   });
 
   renderCategoryChart(filtered);
-  renderMonthlyChart(filtered);
+  renderMonthlyCharts(filtered);
   renderTransactionList(filtered, cat);
 }
 
@@ -249,60 +247,64 @@ function renderCategoryChart(tx) {
   catEl.innerHTML = `<option value="">All Categories</option>`;
   labels.forEach(c => catEl.add(new Option(c, c)));
 
-  const ctx = document.getElementById("categoryChart");
   if (CAT_CHART) CAT_CHART.destroy();
-
-  CAT_CHART = new Chart(ctx, {
+  CAT_CHART = new Chart(categoryChart, {
     type: "pie",
-    data: {
-      labels,
-      datasets: [{ data: values }]
-    },
+    data: { labels, datasets: [{ data: values }] },
     options: {
-      responsive: true,
       plugins: {
-        tooltip: {
-          callbacks: {
-            label: c =>
-              `${c.label}: ฿${c.parsed.toLocaleString()}`
-          }
+        datalabels: {
+          formatter: v => `฿${v.toLocaleString()}`
         }
       },
       onClick: (_, el) => {
-        if (!el.length) return;
-        catEl.value = labels[el[0].index];
-        renderAnalytics();
+        if (el.length) {
+          catEl.value = labels[el[0].index];
+          renderAnalytics();
+        }
       }
-    }
+    },
+    plugins: [ChartDataLabels]
   });
 }
 
-/* ===== MONTHLY BAR ===== */
-function renderMonthlyChart(tx) {
+/* ===== MONTHLY PIE + BAR ===== */
+function renderMonthlyCharts(tx) {
   let income = 0, expense = 0;
-  tx.forEach(t => {
-    if (t.amount >= 0) income += t.amount;
-    else expense += Math.abs(t.amount);
+  tx.forEach(t => t.amount >= 0 ? income+=t.amount : expense+=Math.abs(t.amount));
+
+  if (PIE_CHART) PIE_CHART.destroy();
+  if (BAR_CHART) BAR_CHART.destroy();
+
+  PIE_CHART = new Chart(monthlyPie, {
+    type: "pie",
+    data: {
+      labels: ["Income", "Expense"],
+      datasets: [{ data: [income, expense] }]
+    },
+    plugins: [ChartDataLabels],
+    options: {
+      plugins: {
+        datalabels: {
+          formatter: v => `฿${v.toLocaleString()}`
+        }
+      }
+    }
   });
 
-  const ctx = document.getElementById("monthlyChart");
-  if (MONTH_CHART) MONTH_CHART.destroy();
-
-  MONTH_CHART = new Chart(ctx, {
+  BAR_CHART = new Chart(monthlyBar, {
     type: "bar",
     data: {
       labels: ["Income", "Expense"],
-      datasets: [{
-        data: [income, expense]
-      }]
+      datasets: [{ data: [income, expense] }]
     },
+    plugins: [ChartDataLabels],
     options: {
-      responsive: true,
       plugins: {
-        tooltip: {
-          callbacks: {
-            label: c => `฿${c.parsed.y.toLocaleString()}`
-          }
+        datalabels: {
+          anchor: "end",
+          align: "top",
+          formatter: v => `฿${v.toLocaleString()}`
         }
       }
     }
@@ -311,37 +313,31 @@ function renderMonthlyChart(tx) {
 
 /* ===== TRANSACTION LIST ===== */
 function renderTransactionList(tx, category) {
-  const el = document.getElementById("categoryTxList");
-  const title = document.getElementById("categoryTitle");
+  const el = categoryTxList;
+  const title = categoryTitle;
 
+  const list = category ? tx.filter(t => t.category === category) : tx;
+
+  title.textContent = category ? `Transactions: ${category}` : "Transactions";
   el.innerHTML = "";
 
-  const list = category
-    ? tx.filter(t => t.category === category)
-    : tx;
-
-  title.textContent = category
-    ? `Transactions: ${category}`
-    : "Transactions";
-
-  if (list.length === 0) {
+  if (!list.length) {
     el.innerHTML = "<p>ไม่มีข้อมูล</p>";
     return;
   }
 
   list.forEach(t => {
-    const div = document.createElement("div");
-    div.className = "tx-row";
-    div.innerHTML = `
-      <div class="tx-top">
-        <span>${t.date}</span>
-        <span class="${t.amount>=0?'tx-plus':'tx-minus'}">
-          ฿${Math.abs(t.amount).toLocaleString()}
-        </span>
+    el.insertAdjacentHTML("beforeend", `
+      <div class="tx-row">
+        <div class="tx-top">
+          <span>${t.date}</span>
+          <span class="${t.amount>=0?'tx-plus':'tx-minus'}">
+            ฿${Math.abs(t.amount).toLocaleString()}
+          </span>
+        </div>
+        <div class="tx-desc">${t.category} · ${t.description||""}</div>
       </div>
-      <div class="tx-desc">${t.category} · ${t.description||""}</div>
-    `;
-    el.appendChild(div);
+    `);
   });
 }
 
