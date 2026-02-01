@@ -155,12 +155,11 @@ async function initAnalytics() {
 function initAnalyticsSelectors() {
   const yearEl = document.getElementById("analytics-year");
   const monthEl = document.getElementById("analytics-month");
+  const locEl = document.getElementById("analytics-location");
   const catEl = document.getElementById("analytics-category");
 
   const dates = ANALYTICS_TX.map(t => new Date(t.date));
   const years = [...new Set(dates.map(d => d.getFullYear()))].sort((a,b)=>b-a);
-const locEl = document.getElementById("analytics-location");
-locEl.onchange = renderAnalytics;
 
   yearEl.innerHTML = "";
   years.forEach(y => yearEl.add(new Option(y, y)));
@@ -175,8 +174,12 @@ locEl.onchange = renderAnalytics;
     months.forEach(m => monthEl.add(new Option(`เดือน ${m}`, m)));
   }
 
-  yearEl.onchange = () => { updateMonths(); renderAnalytics(); };
+  yearEl.onchange = () => {
+    updateMonths();
+    renderAnalytics();
+  };
   monthEl.onchange = renderAnalytics;
+  locEl.onchange = renderAnalytics;
   catEl.onchange = renderAnalytics;
 
   yearEl.value = years[0];
@@ -187,26 +190,44 @@ locEl.onchange = renderAnalytics;
 function renderAnalytics() {
   const y = Number(document.getElementById("analytics-year").value);
   const m = Number(document.getElementById("analytics-month").value);
-  const cat = document.getElementById("analytics-category").value;
   const loc = document.getElementById("analytics-location").value;
+  const cat = document.getElementById("analytics-category").value;
 
+  // 🔹 เดือน + location (ภาพรวม)
+  const monthTx = ANALYTICS_TX.filter(t => {
+    const d = new Date(t.date);
+    return (
+      d.getFullYear() === y &&
+      d.getMonth()+1 === m &&
+      (!loc || t.location === loc)
+    );
+  });
 
-  const filtered = ANALYTICS_TX.filter(t => {
-  const d = new Date(t.date);
-  return (
-    d.getFullYear() === y &&
-    d.getMonth() + 1 === m &&
-    (!cat || t.category === cat) &&
-    (!loc || t.location === loc)
-  );
-});
-const monthTx = ANALYTICS_TX.filter(t => {
-  const d = new Date(t.date);
-  return d.getFullYear() === y && d.getMonth()+1 === m;
-});
-  renderCategoryChart(filtered);
-  renderMonthlyChart(monthlyTx);
-  renderTransactionList(filtered, cat);
+  populateLocationSelector(monthTx);
+  renderMonthlyChart(monthTx);
+  renderCategoryChart(monthTx);
+
+  // 🔹 list = category filter
+  const listTx = cat
+    ? monthTx.filter(t => t.category === cat)
+    : monthTx;
+
+  renderTransactionList(listTx, cat);
+}
+
+/* ===== LOCATION SELECT ===== */
+function populateLocationSelector(tx) {
+  const locEl = document.getElementById("analytics-location");
+  const current = locEl.value;
+
+  const locations = [...new Set(
+    tx.map(t => t.location).filter(Boolean)
+  )];
+
+  locEl.innerHTML = `<option value="">All Locations</option>`;
+  locations.forEach(l => locEl.add(new Option(l, l)));
+
+  if (locations.includes(current)) locEl.value = current;
 }
 
 /* ===== CATEGORY PIE ===== */
@@ -230,7 +251,10 @@ function renderCategoryChart(tx) {
 
   CAT_CHART = new Chart(ctx, {
     type: "pie",
-    data: { labels, datasets: [{ data: values }] },
+    data: {
+      labels,
+      datasets: [{ data: values }]
+    },
     options: {
       responsive: true,
       plugins: {
@@ -244,18 +268,12 @@ function renderCategoryChart(tx) {
         if (!el.length) return;
         catEl.value = labels[el[0].index];
         renderAnalytics();
-        // populate location selector
-const locEl = document.getElementById("analytics-location");
-const locations = [...new Set(tx.map(t => t.location).filter(Boolean))];
-
-locEl.innerHTML = `<option value="">All Locations</option>`;
-locations.forEach(l => locEl.add(new Option(l, l)));
       }
     }
   });
 }
 
-/* ===== MONTHLY BAR ===== */
+/* ===== MONTHLY SUMMARY ===== */
 function renderMonthlyChart(tx) {
   let income = 0, expense = 0;
   tx.forEach(t => {
@@ -270,7 +288,9 @@ function renderMonthlyChart(tx) {
     type: "bar",
     data: {
       labels: ["Income", "Expense"],
-      datasets: [{ data: [income, expense] }]
+      datasets: [{
+        data: [income, expense]
+      }]
     },
     options: {
       responsive: true,
@@ -285,45 +305,40 @@ function renderMonthlyChart(tx) {
   });
 }
 
-/* ===== TRANSACTION LIST (ANALYTICS) ===== */
+/* ===== TRANSACTION LIST ===== */
 function renderTransactionList(tx, category) {
   const el = document.getElementById("categoryTxList");
   const title = document.getElementById("categoryTitle");
 
   el.innerHTML = "";
 
-  const list = category
-    ? tx.filter(t => t.category === category)
-    : tx;
-
   title.textContent = category
     ? `Transactions: ${category}`
     : "Transactions";
 
-  if (list.length === 0) {
+  if (tx.length === 0) {
     el.innerHTML = "<p>ไม่มีข้อมูล</p>";
     return;
   }
 
-  list.forEach(t => {
+  tx.forEach(t => {
     const div = document.createElement("div");
     div.className = "tx-row";
     div.innerHTML = `
       <div class="tx-top">
         <span class="tx-date">${t.date}</span>
         <span class="tx-amount ${t.amount>=0?'tx-plus':'tx-minus'}">
-          ${t.amount>=0?'+':'-'}฿${Math.abs(t.amount).toLocaleString()}
+          ฿${Math.abs(t.amount).toLocaleString()}
         </span>
       </div>
       <div class="tx-desc">
-        ${t.category || ""}
-        ${t.description ? " · " + t.description : ""}
-        ${t.location ? " · 📍" + t.location : ""}
+        ${t.category} · ${t.location || ""} ${t.description ? "· "+t.description : ""}
       </div>
     `;
     el.appendChild(div);
   });
 }
+
 
 /* ================= NAV ================= */
 function goHome() { location.href = "index.html"; }
