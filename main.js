@@ -13,7 +13,7 @@ async function fetchData() {
   }
 }
 
-/* ================= RENDER TRANSACTIONS ================= */
+/* ================= RENDER TRANSACTIONS (SHARED) ================= */
 function renderTransactions(containerId, list) {
   const el = document.getElementById(containerId);
   if (!el) return;
@@ -37,10 +37,11 @@ function renderTransactions(containerId, list) {
         </span>
       </div>
       <div class="tx-desc">
-        ${t.category || ""}${t.description ? " · " + t.description : ""}
+        ${t.category || ""}
+        ${t.description ? " · " + t.description : ""}
+        ${t.location ? " · 📍" + t.location : ""}
       </div>
     `;
-
     el.appendChild(div);
   });
 }
@@ -50,7 +51,6 @@ async function initHome() {
   const data = await fetchData();
   const tx = data.allTransactions || [];
 
-  // cumulative balance
   const lastBal =
     data.cumulative?.[data.cumulative.length - 1]?.balance || 0;
 
@@ -59,7 +59,6 @@ async function initHome() {
 
   if (tx.length === 0) return;
 
-  // latest month summary
   const latestDate = new Date(tx[0].date);
   const latestMonth = latestDate.getMonth() + 1;
   const latestYear = latestDate.getFullYear();
@@ -69,10 +68,7 @@ async function initHome() {
 
   tx.forEach(t => {
     const d = new Date(t.date);
-    if (
-      d.getMonth() + 1 === latestMonth &&
-      d.getFullYear() === latestYear
-    ) {
+    if (d.getMonth() + 1 === latestMonth && d.getFullYear() === latestYear) {
       if (t.amount >= 0) income += t.amount;
       else expense += Math.abs(t.amount);
     }
@@ -95,13 +91,7 @@ async function initTransactions() {
   const raw = await fetchData();
   ALL_TX = raw.allTransactions || [];
 
-  const listEl = document.getElementById("all-transaction-list");
-  if (!listEl) return;
-
-  if (ALL_TX.length === 0) {
-    listEl.innerHTML = "<p>ไม่มีข้อมูล</p>";
-    return;
-  }
+  if (ALL_TX.length === 0) return;
 
   populateMonthYearSelects();
   filterTransactions();
@@ -112,42 +102,23 @@ function populateMonthYearSelects() {
   const yearSelect = document.getElementById("year-select");
   if (!monthSelect || !yearSelect) return;
 
-  const pairs = ALL_TX.map(t => {
-    const d = new Date(t.date);
-    return { month: d.getMonth() + 1, year: d.getFullYear() };
-  });
-
-  const years = [...new Set(pairs.map(p => p.year))].sort((a, b) => b - a);
-
-  const monthYearMap = {};
-  pairs.forEach(p => {
-    if (!monthYearMap[p.year]) monthYearMap[p.year] = new Set();
-    monthYearMap[p.year].add(p.month);
-  });
+  const dates = ALL_TX.map(t => new Date(t.date));
+  const years = [...new Set(dates.map(d => d.getFullYear()))].sort((a,b)=>b-a);
 
   yearSelect.innerHTML = "";
-  years.forEach(y => {
-    const opt = document.createElement("option");
-    opt.value = y;
-    opt.textContent = y;
-    yearSelect.appendChild(opt);
-  });
+  years.forEach(y => yearSelect.add(new Option(y, y)));
 
   function updateMonths() {
     const y = Number(yearSelect.value);
+    const months = [...new Set(
+      dates.filter(d => d.getFullYear() === y).map(d => d.getMonth()+1)
+    )].sort((a,b)=>b-a);
+
     monthSelect.innerHTML = "";
-    [...monthYearMap[y]].sort((a, b) => b - a).forEach(m => {
-      const opt = document.createElement("option");
-      opt.value = m;
-      opt.textContent = `เดือน ${m}`;
-      monthSelect.appendChild(opt);
-    });
+    months.forEach(m => monthSelect.add(new Option(`เดือน ${m}`, m)));
   }
 
-  yearSelect.onchange = () => {
-    updateMonths();
-    filterTransactions();
-  };
+  yearSelect.onchange = () => { updateMonths(); filterTransactions(); };
   monthSelect.onchange = filterTransactions;
 
   yearSelect.value = years[0];
@@ -155,14 +126,8 @@ function populateMonthYearSelects() {
 }
 
 function filterTransactions() {
-  const mEl = document.getElementById("month-select");
-  const yEl = document.getElementById("year-select");
-  const listEl = document.getElementById("all-transaction-list");
-
-  if (!mEl || !yEl || !listEl) return;
-
-  const m = Number(mEl.value);
-  const y = Number(yEl.value);
+  const m = Number(document.getElementById("month-select").value);
+  const y = Number(document.getElementById("year-select").value);
 
   const filtered = ALL_TX.filter(t => {
     const d = new Date(t.date);
@@ -172,18 +137,175 @@ function filterTransactions() {
   renderTransactions("all-transaction-list", filtered);
 }
 
-.analytics-controls {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
+/* ================= ANALYTICS ================= */
+let ANALYTICS_TX = [];
+let CAT_CHART = null;
+let MONTH_CHART = null;
+
+async function initAnalytics() {
+  const data = await fetchData();
+  ANALYTICS_TX = data.allTransactions || [];
+  if (ANALYTICS_TX.length === 0) return;
+
+  initAnalyticsSelectors();
+  renderAnalytics();
 }
 
-.analytics-controls select {
-  flex: 1;
-  padding: 6px;
-  border-radius: 8px;
+/* ===== SELECTORS ===== */
+function initAnalyticsSelectors() {
+  const yearEl = document.getElementById("analytics-year");
+  const monthEl = document.getElementById("analytics-month");
+  const catEl = document.getElementById("analytics-category");
+
+  const dates = ANALYTICS_TX.map(t => new Date(t.date));
+  const years = [...new Set(dates.map(d => d.getFullYear()))].sort((a,b)=>b-a);
+
+  yearEl.innerHTML = "";
+  years.forEach(y => yearEl.add(new Option(y, y)));
+
+  function updateMonths() {
+    const y = Number(yearEl.value);
+    const months = [...new Set(
+      dates.filter(d => d.getFullYear() === y).map(d => d.getMonth()+1)
+    )].sort((a,b)=>b-a);
+
+    monthEl.innerHTML = "";
+    months.forEach(m => monthEl.add(new Option(`เดือน ${m}`, m)));
+  }
+
+  yearEl.onchange = () => { updateMonths(); renderAnalytics(); };
+  monthEl.onchange = renderAnalytics;
+  catEl.onchange = renderAnalytics;
+
+  yearEl.value = years[0];
+  updateMonths();
 }
 
+/* ===== MAIN RENDER ===== */
+function renderAnalytics() {
+  const y = Number(document.getElementById("analytics-year").value);
+  const m = Number(document.getElementById("analytics-month").value);
+  const cat = document.getElementById("analytics-category").value;
+
+  const filtered = ANALYTICS_TX.filter(t => {
+    const d = new Date(t.date);
+    return d.getFullYear() === y && d.getMonth()+1 === m;
+  });
+
+  renderCategoryChart(filtered);
+  renderMonthlyChart(filtered);
+  renderTransactionList(filtered, cat);
+}
+
+/* ===== CATEGORY PIE ===== */
+function renderCategoryChart(tx) {
+  const map = {};
+  tx.forEach(t => {
+    if (t.amount < 0) {
+      map[t.category] = (map[t.category] || 0) + Math.abs(t.amount);
+    }
+  });
+
+  const labels = Object.keys(map);
+  const values = Object.values(map);
+
+  const catEl = document.getElementById("analytics-category");
+  catEl.innerHTML = `<option value="">All Categories</option>`;
+  labels.forEach(c => catEl.add(new Option(c, c)));
+
+  const ctx = document.getElementById("categoryChart");
+  if (CAT_CHART) CAT_CHART.destroy();
+
+  CAT_CHART = new Chart(ctx, {
+    type: "pie",
+    data: { labels, datasets: [{ data: values }] },
+    options: {
+      responsive: true,
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: c => `${c.label}: ฿${c.parsed.toLocaleString()}`
+          }
+        }
+      },
+      onClick: (_, el) => {
+        if (!el.length) return;
+        catEl.value = labels[el[0].index];
+        renderAnalytics();
+      }
+    }
+  });
+}
+
+/* ===== MONTHLY BAR ===== */
+function renderMonthlyChart(tx) {
+  let income = 0, expense = 0;
+  tx.forEach(t => {
+    if (t.amount >= 0) income += t.amount;
+    else expense += Math.abs(t.amount);
+  });
+
+  const ctx = document.getElementById("monthlyChart");
+  if (MONTH_CHART) MONTH_CHART.destroy();
+
+  MONTH_CHART = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: ["Income", "Expense"],
+      datasets: [{ data: [income, expense] }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: c => `฿${c.parsed.y.toLocaleString()}`
+          }
+        }
+      }
+    }
+  });
+}
+
+/* ===== TRANSACTION LIST (ANALYTICS) ===== */
+function renderTransactionList(tx, category) {
+  const el = document.getElementById("categoryTxList");
+  const title = document.getElementById("categoryTitle");
+
+  el.innerHTML = "";
+
+  const list = category
+    ? tx.filter(t => t.category === category)
+    : tx;
+
+  title.textContent = category
+    ? `Transactions: ${category}`
+    : "Transactions";
+
+  if (list.length === 0) {
+    el.innerHTML = "<p>ไม่มีข้อมูล</p>";
+    return;
+  }
+
+  list.forEach(t => {
+    const div = document.createElement("div");
+    div.className = "tx-row";
+    div.innerHTML = `
+      <div class="tx-top">
+        <span class="tx-date">${t.date}</span>
+        <span class="tx-amount ${t.amount>=0?'tx-plus':'tx-minus'}">
+          ${t.amount>=0?'+':'-'}฿${Math.abs(t.amount).toLocaleString()}
+        </span>
+      </div>
+      <div class="tx-desc">
+        ${t.category || ""}
+        ${t.description ? " · " + t.description : ""}
+        ${t.location ? " · 📍" + t.location : ""}
+      </div>
+    `;
+    el.appendChild(div);
+  });
+}
 
 /* ================= NAV ================= */
 function goHome() { location.href = "index.html"; }
