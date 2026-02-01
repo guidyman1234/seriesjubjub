@@ -159,6 +159,8 @@ function initAnalyticsSelectors() {
 
   const dates = ANALYTICS_TX.map(t => new Date(t.date));
   const years = [...new Set(dates.map(d => d.getFullYear()))].sort((a,b)=>b-a);
+const locEl = document.getElementById("analytics-location");
+locEl.onchange = renderAnalytics;
 
   yearEl.innerHTML = "";
   years.forEach(y => yearEl.add(new Option(y, y)));
@@ -186,14 +188,24 @@ function renderAnalytics() {
   const y = Number(document.getElementById("analytics-year").value);
   const m = Number(document.getElementById("analytics-month").value);
   const cat = document.getElementById("analytics-category").value;
+  const loc = document.getElementById("analytics-location").value;
+
 
   const filtered = ANALYTICS_TX.filter(t => {
-    const d = new Date(t.date);
-    return d.getFullYear() === y && d.getMonth()+1 === m;
-  });
-
+  const d = new Date(t.date);
+  return (
+    d.getFullYear() === y &&
+    d.getMonth() + 1 === m &&
+    (!cat || t.category === cat) &&
+    (!loc || t.location === loc)
+  );
+});
+const monthTx = ANALYTICS_TX.filter(t => {
+  const d = new Date(t.date);
+  return d.getFullYear() === y && d.getMonth()+1 === m;
+});
   renderCategoryChart(filtered);
-  renderMonthlyChart(filtered);
+  renderMonthlyChart(monthlyTx);
   renderTransactionList(filtered, cat);
 }
 
@@ -232,6 +244,12 @@ function renderCategoryChart(tx) {
         if (!el.length) return;
         catEl.value = labels[el[0].index];
         renderAnalytics();
+        // populate location selector
+const locEl = document.getElementById("analytics-location");
+const locations = [...new Set(tx.map(t => t.location).filter(Boolean))];
+
+locEl.innerHTML = `<option value="">All Locations</option>`;
+locations.forEach(l => locEl.add(new Option(l, l)));
       }
     }
   });
