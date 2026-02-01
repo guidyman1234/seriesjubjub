@@ -1,34 +1,35 @@
+/* =================================================
+   CONFIG
+================================================= */
 const API_URL =
   "https://script.google.com/macros/s/AKfycbyVt9RHPNWWgzbOpjlyMk014Ir7MoePNCcrO9QPPh2RIg3VqZM03rpoE4wF1JIjr3LTGw/exec";
 
-/* ================= FETCH ================= */
+/* =================================================
+   FETCH
+================================================= */
 async function fetchData() {
-  try {
-    const res = await fetch(API_URL);
-    if (!res.ok) throw new Error(res.status);
-    return await res.json();
-  } catch (e) {
-    alert("API ERROR: " + e.message);
-    throw e;
-  }
+  const res = await fetch(API_URL);
+  if (!res.ok) throw new Error("API ERROR");
+  return await res.json();
 }
 
-/* ================= RENDER TRANSACTIONS (SHARED) ================= */
+/* =================================================
+   SHARED: TRANSACTION RENDER
+================================================= */
 function renderTransactions(containerId, list) {
   const el = document.getElementById(containerId);
   if (!el) return;
 
   el.innerHTML = "";
 
-  if (!list || list.length === 0) {
-    el.innerHTML = "<p>ไม่มีข้อมูล</p>";
+  if (!list.length) {
+    el.innerHTML = `<p style="text-align:center;color:#888">ไม่มีข้อมูล</p>`;
     return;
   }
 
   list.forEach(t => {
     const div = document.createElement("div");
     div.className = "tx-row";
-
     div.innerHTML = `
       <div class="tx-top">
         <span class="tx-date">${t.date}</span>
@@ -38,90 +39,86 @@ function renderTransactions(containerId, list) {
       </div>
       <div class="tx-desc">
         ${t.category || ""}
-        ${t.description ? " · " + t.description : ""}
         ${t.location ? " · 📍" + t.location : ""}
+        ${t.description ? " · " + t.description : ""}
       </div>
     `;
     el.appendChild(div);
   });
 }
 
-/* ================= HOME ================= */
+/* =================================================
+   HOME
+================================================= */
 async function initHome() {
   const data = await fetchData();
   const tx = data.allTransactions || [];
+  const cum = data.cumulative || [];
 
-  const lastBal =
-    data.cumulative?.[data.cumulative.length - 1]?.balance || 0;
+  if (!tx.length) return;
 
-  const balEl = document.getElementById("cumulative-balance");
-  if (balEl) balEl.textContent = "฿" + lastBal.toLocaleString();
+  document.getElementById("cumulative-balance").textContent =
+    "฿" + (cum.at(-1)?.balance || 0).toLocaleString();
 
-  if (tx.length === 0) return;
+  const latest = new Date(tx[0].date);
+  const m = latest.getMonth();
+  const y = latest.getFullYear();
 
-  const latestDate = new Date(tx[0].date);
-  const latestMonth = latestDate.getMonth() + 1;
-  const latestYear = latestDate.getFullYear();
-
-  let income = 0;
-  let expense = 0;
-
+  let income = 0, expense = 0;
   tx.forEach(t => {
     const d = new Date(t.date);
-    if (d.getMonth() + 1 === latestMonth && d.getFullYear() === latestYear) {
+    if (d.getMonth() === m && d.getFullYear() === y) {
       if (t.amount >= 0) income += t.amount;
       else expense += Math.abs(t.amount);
     }
   });
 
-  document.getElementById("monthly-income").textContent =
-    "฿" + income.toLocaleString();
-  document.getElementById("monthly-expense").textContent =
-    "฿" + expense.toLocaleString();
+  document.getElementById("monthly-income").textContent = "฿" + income.toLocaleString();
+  document.getElementById("monthly-expense").textContent = "฿" + expense.toLocaleString();
   document.getElementById("monthly-balance").textContent =
     "฿" + (income - expense).toLocaleString();
 
   renderTransactions("transaction-list", tx.slice(0, 20));
 }
 
-/* ================= TRANSACTIONS PAGE ================= */
+/* =================================================
+   TRANSACTIONS PAGE
+================================================= */
 let ALL_TX = [];
 
 async function initTransactions() {
-  const raw = await fetchData();
-  ALL_TX = raw.allTransactions || [];
+  const data = await fetchData();
+  ALL_TX = data.allTransactions || [];
+  if (!ALL_TX.length) return;
 
-  if (ALL_TX.length === 0) return;
-
-  populateMonthYearSelects();
+  populateMonthYear();
   filterTransactions();
 }
 
-function populateMonthYearSelects() {
-  const monthSelect = document.getElementById("month-select");
-  const yearSelect = document.getElementById("year-select");
-  if (!monthSelect || !yearSelect) return;
+function populateMonthYear() {
+  const mEl = document.getElementById("month-select");
+  const yEl = document.getElementById("year-select");
 
   const dates = ALL_TX.map(t => new Date(t.date));
   const years = [...new Set(dates.map(d => d.getFullYear()))].sort((a,b)=>b-a);
 
-  yearSelect.innerHTML = "";
-  years.forEach(y => yearSelect.add(new Option(y, y)));
+  yEl.innerHTML = "";
+  years.forEach(y => yEl.add(new Option(y, y)));
 
   function updateMonths() {
-    const y = Number(yearSelect.value);
+    const y = Number(yEl.value);
     const months = [...new Set(
       dates.filter(d => d.getFullYear() === y).map(d => d.getMonth()+1)
     )].sort((a,b)=>b-a);
 
-    monthSelect.innerHTML = "";
-    months.forEach(m => monthSelect.add(new Option(`เดือน ${m}`, m)));
+    mEl.innerHTML = "";
+    months.forEach(m => mEl.add(new Option(`เดือน ${m}`, m)));
   }
 
-  yearSelect.onchange = () => { updateMonths(); filterTransactions(); };
-  monthSelect.onchange = filterTransactions;
+  yEl.onchange = () => { updateMonths(); filterTransactions(); };
+  mEl.onchange = filterTransactions;
 
-  yearSelect.value = years[0];
+  yEl.value = years[0];
   updateMonths();
 }
 
@@ -129,352 +126,148 @@ function filterTransactions() {
   const m = Number(document.getElementById("month-select").value);
   const y = Number(document.getElementById("year-select").value);
 
-  const filtered = ALL_TX.filter(t => {
+  const list = ALL_TX.filter(t => {
     const d = new Date(t.date);
-    return d.getMonth() + 1 === m && d.getFullYear() === y;
+    return d.getMonth()+1 === m && d.getFullYear() === y;
   });
 
-  renderTransactions("all-transaction-list", filtered);
+  renderTransactions("all-transaction-list", list);
 }
 
-/* ================= ANALYTICS ================= */
+/* =================================================
+   ANALYTICS
+================================================= */
+let analyticsChart;
 let ANALYTICS_TX = [];
-let CAT_CHART = null;
-let MONTH_CHART = null;
 
 async function initAnalytics() {
   const data = await fetchData();
   ANALYTICS_TX = data.allTransactions || [];
-  if (ANALYTICS_TX.length === 0) return;
+  if (!ANALYTICS_TX.length) return;
 
-  initAnalyticsSelectors();
+  setupAnalyticsFilters();
   renderAnalytics();
 }
 
-/* ===== SELECTORS ===== */
-function initAnalyticsSelectors() {
-  const yearEl = document.getElementById("analytics-year");
-  const monthEl = document.getElementById("analytics-month");
-  const locEl = document.getElementById("analytics-location");
-  const catEl = document.getElementById("analytics-category");
+function setupAnalyticsFilters() {
+  const yEl = document.getElementById("filterYear");
+  const mEl = document.getElementById("filterMonth");
+  const lEl = document.getElementById("filterLocation");
+  const cEl = document.getElementById("filterCategory");
 
   const dates = ANALYTICS_TX.map(t => new Date(t.date));
   const years = [...new Set(dates.map(d => d.getFullYear()))].sort((a,b)=>b-a);
 
-  yearEl.innerHTML = "";
-  years.forEach(y => yearEl.add(new Option(y, y)));
+  yEl.innerHTML = `<option value="ALL">All</option>`;
+  years.forEach(y => yEl.add(new Option(y, y)));
 
-  function updateMonths() {
-    const y = Number(yearEl.value);
-    const months = [...new Set(
-      dates.filter(d => d.getFullYear() === y).map(d => d.getMonth()+1)
-    )].sort((a,b)=>b-a);
+  yEl.onchange = () => fillMonths();
+  [yEl, mEl, lEl, cEl].forEach(el =>
+    el.addEventListener("change", renderAnalytics)
+  );
 
-    monthEl.innerHTML = "";
-    months.forEach(m => monthEl.add(new Option(`เดือน ${m}`, m)));
-  }
-
-  yearEl.onchange = () => {
-    updateMonths();
-    renderAnalytics();
-  };
-  monthEl.onchange = renderAnalytics;
-  locEl.onchange = renderAnalytics;
-  catEl.onchange = renderAnalytics;
-
-  yearEl.value = years[0];
-  updateMonths();
+  fillMonths();
 }
 
-/* ===== MAIN RENDER ===== */
-function renderAnalytics() {
-  const y = Number(document.getElementById("analytics-year").value);
-  const m = Number(document.getElementById("analytics-month").value);
-  const loc = document.getElementById("analytics-location").value;
-  const cat = document.getElementById("analytics-category").value;
+function fillMonths() {
+  const y = document.getElementById("filterYear").value;
+  const mEl = document.getElementById("filterMonth");
 
-  // 🔹 เดือน + location (ภาพรวม)
-  const monthTx = ANALYTICS_TX.filter(t => {
+  const months = [...new Set(
+    ANALYTICS_TX.filter(t => y==="ALL" || new Date(t.date).getFullYear()==y)
+      .map(t => new Date(t.date).getMonth()+1)
+  )].sort((a,b)=>b-a);
+
+  mEl.innerHTML = `<option value="ALL">All</option>`;
+  months.forEach(m => mEl.add(new Option(`เดือน ${m}`, m)));
+}
+
+function renderAnalytics() {
+  const y = document.getElementById("filterYear").value;
+  const m = document.getElementById("filterMonth").value;
+  const l = document.getElementById("filterLocation").value;
+  const c = document.getElementById("filterCategory").value;
+
+  const filtered = ANALYTICS_TX.filter(t => {
     const d = new Date(t.date);
     return (
-      d.getFullYear() === y &&
-      d.getMonth()+1 === m &&
-      (!loc || t.location === loc)
+      (y==="ALL" || d.getFullYear()==y) &&
+      (m==="ALL" || d.getMonth()+1==m) &&
+      (!l || t.location===l) &&
+      (!c || t.category===c)
     );
   });
 
-  populateLocationSelector(monthTx);
-  renderMonthlyChart(monthTx);
-  renderCategoryChart(monthTx);
-
-  // 🔹 list = category filter
-  const listTx = cat
-    ? monthTx.filter(t => t.category === cat)
-    : monthTx;
-
-  renderTransactionList(listTx, cat);
-}
-
-/* ===== LOCATION SELECT ===== */
-function populateLocationSelector(tx) {
-  const locEl = document.getElementById("analytics-location");
-  const current = locEl.value;
-
-  const locations = [...new Set(
-    tx.map(t => t.location).filter(Boolean)
-  )];
-
-  locEl.innerHTML = `<option value="">All Locations</option>`;
-  locations.forEach(l => locEl.add(new Option(l, l)));
-
-  if (locations.includes(current)) locEl.value = current;
-}
-
-/* ===== CATEGORY PIE ===== */
-function renderCategoryChart(tx) {
-  const map = {};
-  tx.forEach(t => {
-    if (t.amount < 0) {
-      map[t.category] = (map[t.category] || 0) + Math.abs(t.amount);
-    }
-  });
-
-  const labels = Object.keys(map);
-  const values = Object.values(map);
-
-  const catEl = document.getElementById("analytics-category");
-  catEl.innerHTML = `<option value="">All Categories</option>`;
-  labels.forEach(c => catEl.add(new Option(c, c)));
-
-  const ctx = document.getElementById("categoryChart");
-  if (CAT_CHART) CAT_CHART.destroy();
-
-  CAT_CHART = new Chart(ctx, {
-    type: "pie",
-    data: {
-      labels,
-      datasets: [{ data: values }]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        tooltip: {
-          callbacks: {
-            label: c => `${c.label}: ฿${c.parsed.toLocaleString()}`
-          }
-        }
-      },
-      onClick: (_, el) => {
-        if (!el.length) return;
-        catEl.value = labels[el[0].index];
-        renderAnalytics();
-      }
-    }
-  });
-}
-
-/* ===== MONTHLY SUMMARY ===== */
-function renderMonthlyChart(tx) {
-  let income = 0, expense = 0;
-  tx.forEach(t => {
-    if (t.amount >= 0) income += t.amount;
-    else expense += Math.abs(t.amount);
-  });
-
-  const ctx = document.getElementById("monthlyChart");
-  if (MONTH_CHART) MONTH_CHART.destroy();
-
-  MONTH_CHART = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels: ["Income", "Expense"],
-      datasets: [{
-        data: [income, expense]
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        tooltip: {
-          callbacks: {
-            label: c => `฿${c.parsed.y.toLocaleString()}`
-          }
-        }
-      }
-    }
-  });
-}
-
-/* ===== TRANSACTION LIST ===== */
-function renderTransactionList(tx, category) {
-  const el = document.getElementById("categoryTxList");
-  const title = document.getElementById("categoryTitle");
-
-  el.innerHTML = "";
-
-  title.textContent = category
-    ? `Transactions: ${category}`
-    : "Transactions";
-
-  if (tx.length === 0) {
-    el.innerHTML = "<p>ไม่มีข้อมูล</p>";
-    return;
-  }
-
-  tx.forEach(t => {
-    const div = document.createElement("div");
-    div.className = "tx-row";
-    div.innerHTML = `
-      <div class="tx-top">
-        <span class="tx-date">${t.date}</span>
-        <span class="tx-amount ${t.amount>=0?'tx-plus':'tx-minus'}">
-          ฿${Math.abs(t.amount).toLocaleString()}
-        </span>
-      </div>
-      <div class="tx-desc">
-        ${t.category} · ${t.location || ""} ${t.description ? "· "+t.description : ""}
-      </div>
-    `;
-    el.appendChild(div);
-  });
-}
-let analyticsChart;
-let allTx = [];
-
-async function initAnalytics() {
-  const res = await fetch(API_URL);
-  allTx = await res.json();
-
-  setupFilters();
-  renderAnalytics();
-}
-
-function setupFilters() {
-  const years = [...new Set(allTx.map(t => t.YEAR))];
-  const months = [...new Set(allTx.map(t => t.MONTH))];
-  const locations = [...new Set(allTx.map(t => t.LOCATION))];
-  const categories = [...new Set(allTx.map(t => t.CATEGORY))];
-
-  fillSelect("filterYear", years, true);
-  fillSelect("filterMonth", months, true);
-  fillSelect("filterLocation", locations, true);
-  fillSelect("filterCategory", categories, true);
-
-  document
-    .querySelectorAll(".filter-row select")
-    .forEach(el => el.addEventListener("change", renderAnalytics));
-}
-
-function fillSelect(id, items, allowAll) {
-  const el = document.getElementById(id);
-  el.innerHTML = "";
-
-  if (allowAll) {
-    el.innerHTML += `<option value="ALL">All</option>`;
-  }
-
-  items.forEach(v => {
-    el.innerHTML += `<option value="${v}">${v}</option>`;
-  });
-}
-
-function renderAnalytics() {
-  const year = filterValue("filterYear");
-  const month = filterValue("filterMonth");
-  const location = filterValue("filterLocation");
-  const category = filterValue("filterCategory");
-
-  const filtered = allTx.filter(t =>
-    (year === "ALL" || t.YEAR == year) &&
-    (month === "ALL" || t.MONTH == month) &&
-    (location === "ALL" || t.LOCATION === location) &&
-    (category === "ALL" || t.CATEGORY === category)
-  );
-
+  populateLocationCategory(filtered);
   renderSummary(filtered);
-  renderChart(filtered);
-  renderTxList(filtered);
+  renderStackedChart(filtered);
+  renderTransactions("txList", filtered);
 }
 
-function filterValue(id) {
-  return document.getElementById(id).value;
+function populateLocationCategory(tx) {
+  const lEl = document.getElementById("filterLocation");
+  const cEl = document.getElementById("filterCategory");
+
+  const locs = [...new Set(tx.map(t=>t.location).filter(Boolean))];
+  const cats = [...new Set(tx.map(t=>t.category).filter(Boolean))];
+
+  lEl.innerHTML = `<option value="">All Locations</option>`;
+  locs.forEach(v => lEl.add(new Option(v,v)));
+
+  cEl.innerHTML = `<option value="">All Categories</option>`;
+  cats.forEach(v => cEl.add(new Option(v,v)));
 }
-function renderChart(data) {
-  const income = {};
-  const expense = {};
 
-  data.forEach(t => {
-    const target = t.TYPE === "INCOME" ? income : expense;
-    target[t.CATEGORY] = (target[t.CATEGORY] || 0) + Number(t.AMOUNT);
-  });
-
-  const categories = [...new Set([...Object.keys(income), ...Object.keys(expense)])];
-
-  const datasets = categories.map(cat => ({
-    label: cat,
-    data: [
-      income[cat] || 0,
-      expense[cat] || 0
-    ]
-  }));
-
-  if (analyticsChart) analyticsChart.destroy();
-
-  analyticsChart = new Chart(document.getElementById("analyticsChart"), {
-    type: "bar",
-    data: {
-      labels: ["Income", "Expense"],
-      datasets
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { position: "bottom" }
-      },
-      scales: {
-        x: { stacked: true },
-        y: { stacked: true }
-      }
-    }
-  });
-}
-function renderSummary(data) {
-  let income = 0, expense = 0;
-
-  data.forEach(t => {
-    if (t.TYPE === "INCOME") income += Number(t.AMOUNT);
-    else expense += Number(t.AMOUNT);
+function renderSummary(tx) {
+  let income=0, expense=0;
+  tx.forEach(t=>{
+    if(t.amount>=0) income+=t.amount;
+    else expense+=Math.abs(t.amount);
   });
 
   document.getElementById("sumIncome").textContent = income.toLocaleString();
   document.getElementById("sumExpense").textContent = expense.toLocaleString();
   document.getElementById("sumBalance").textContent =
-    (income - expense).toLocaleString();
+    (income-expense).toLocaleString();
 }
 
-function renderTxList(data) {
-  const box = document.getElementById("txList");
-  box.innerHTML = "";
+function renderStackedChart(tx) {
+  const income = {}, expense = {};
 
-  data
-    .sort((a, b) => new Date(b.DATE) - new Date(a.DATE))
-    .forEach(t => {
-      box.innerHTML += `
-        <div class="tx-row">
-          <span>${t.DATE} · ${t.CATEGORY}</span>
-          <span>${Number(t.AMOUNT).toLocaleString()}</span>
-        </div>
-      `;
-    });
+  tx.forEach(t=>{
+    const map = t.amount>=0 ? income : expense;
+    map[t.category] = (map[t.category]||0) + Math.abs(t.amount);
+  });
 
-  if (!data.length) {
-    box.innerHTML = `<p style="text-align:center;color:#888">No data</p>`;
-  }
+  const cats = [...new Set([...Object.keys(income), ...Object.keys(expense)])];
+
+  const datasets = cats.map(c=>({
+    label: c,
+    data: [income[c]||0, expense[c]||0]
+  }));
+
+  if (analyticsChart) analyticsChart.destroy();
+
+  analyticsChart = new Chart(
+    document.getElementById("analyticsChart"),
+    {
+      type:"bar",
+      data:{
+        labels:["Income","Expense"],
+        datasets
+      },
+      options:{
+        responsive:true,
+        scales:{ x:{stacked:true}, y:{stacked:true} },
+        plugins:{ legend:{position:"bottom"} }
+      }
+    }
+  );
 }
 
-
-/* ================= NAV ================= */
-function goHome() { location.href = "index.html"; }
-function goFund() { location.href = "fund.html"; }
-function goAnalytics() { location.href = "analytics.html"; }
-function goTransactionsAll() { location.href = "transactions.html"; }
+/* =================================================
+   NAV
+================================================= */
+function goHome(){location.href="index.html";}
+function goTransactionsAll(){location.href="transactions.html";}
+function goAnalytics(){location.href="analytics.html";}
