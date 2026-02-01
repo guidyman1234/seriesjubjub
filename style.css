@@ -281,4 +281,15 @@ canvas {
     max-width: 900px;
     margin: auto;
   }
+  .analytics-controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.analytics-controls select {
+  flex: 1;
+  padding: 6px;
+  border-radius: 8px;
+}
 }
