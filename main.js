@@ -399,6 +399,78 @@ function renderAnalytics() {
 function filterValue(id) {
   return document.getElementById(id).value;
 }
+function renderChart(data) {
+  const income = {};
+  const expense = {};
+
+  data.forEach(t => {
+    const target = t.TYPE === "INCOME" ? income : expense;
+    target[t.CATEGORY] = (target[t.CATEGORY] || 0) + Number(t.AMOUNT);
+  });
+
+  const categories = [...new Set([...Object.keys(income), ...Object.keys(expense)])];
+
+  const datasets = categories.map(cat => ({
+    label: cat,
+    data: [
+      income[cat] || 0,
+      expense[cat] || 0
+    ]
+  }));
+
+  if (analyticsChart) analyticsChart.destroy();
+
+  analyticsChart = new Chart(document.getElementById("analyticsChart"), {
+    type: "bar",
+    data: {
+      labels: ["Income", "Expense"],
+      datasets
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: "bottom" }
+      },
+      scales: {
+        x: { stacked: true },
+        y: { stacked: true }
+      }
+    }
+  });
+}
+function renderSummary(data) {
+  let income = 0, expense = 0;
+
+  data.forEach(t => {
+    if (t.TYPE === "INCOME") income += Number(t.AMOUNT);
+    else expense += Number(t.AMOUNT);
+  });
+
+  document.getElementById("sumIncome").textContent = income.toLocaleString();
+  document.getElementById("sumExpense").textContent = expense.toLocaleString();
+  document.getElementById("sumBalance").textContent =
+    (income - expense).toLocaleString();
+}
+
+function renderTxList(data) {
+  const box = document.getElementById("txList");
+  box.innerHTML = "";
+
+  data
+    .sort((a, b) => new Date(b.DATE) - new Date(a.DATE))
+    .forEach(t => {
+      box.innerHTML += `
+        <div class="tx-row">
+          <span>${t.DATE} · ${t.CATEGORY}</span>
+          <span>${Number(t.AMOUNT).toLocaleString()}</span>
+        </div>
+      `;
+    });
+
+  if (!data.length) {
+    box.innerHTML = `<p style="text-align:center;color:#888">No data</p>`;
+  }
+}
 
 
 /* ================= NAV ================= */
