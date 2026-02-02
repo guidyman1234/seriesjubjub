@@ -138,26 +138,25 @@ function filterTransactions() {
 }
 
 /* ================= ANALYTICS ================= */
+/* ================= ANALYTICS ================= */
 let ANALYTICS_TX = [];
 let ANALYTICS_CHART = null;
 
 async function initAnalytics() {
-  console.log("INIT ANALYTICS");
-
   const data = await fetchData();
   ANALYTICS_TX = data.allTransactions || [];
-
-  console.log("TX:", ANALYTICS_TX.length);
-
   if (!ANALYTICS_TX.length) return;
 
-  initFilters();
+  initAnalyticsFilters();
   renderAnalytics();
 }
 
-function initFilters() {
+/* ===== FILTERS ===== */
+function initAnalyticsFilters() {
   const yEl = document.getElementById("analytics-year");
   const mEl = document.getElementById("analytics-month");
+  const locEl = document.getElementById("analytics-location");
+  const catEl = document.getElementById("analytics-category");
 
   const dates = ANALYTICS_TX.map(t => new Date(t.date));
   const years = [...new Set(dates.map(d => d.getFullYear()))].sort((a,b)=>b-a);
@@ -166,11 +165,10 @@ function initFilters() {
   years.forEach(y => yEl.add(new Option(y,y)));
   yEl.value = years[0];
 
-  yEl.onchange = () => {
-    updateMonths();
-    renderAnalytics();
-  };
+  yEl.onchange = () => { updateMonths(); renderAnalytics(); };
   mEl.onchange = renderAnalytics;
+  locEl.onchange = renderAnalytics;
+  catEl.onchange = renderAnalytics;
 
   updateMonths();
 }
@@ -189,15 +187,100 @@ function updateMonths() {
   months.forEach(m => mEl.add(new Option(`เดือน ${m}`, m)));
 }
 
+/* ===== MAIN RENDER ===== */
 function renderAnalytics() {
   const y = Number(document.getElementById("analytics-year").value);
   const m = Number(document.getElementById("analytics-month").value);
+  const loc = document.getElementById("analytics-location").value;
+  const cat = document.getElementById("analytics-category").value;
 
   const tx = ANALYTICS_TX.filter(t => {
     const d = new Date(t.date);
-    return d.getFullYear()===y && d.getMonth()+1===m;
+    return (
+      d.getFullYear() === y &&
+      d.getMonth()+1 === m &&
+      (!loc || t.location === loc) &&
+      (!cat || t.category === cat)
+    );
   });
 
+  populateLocationAndCategory(tx);
+  renderStackedChart(tx);
+  renderSummary(tx);
+  renderTransactions("categoryTxList", tx);
+}
+
+/* ===== LOCATION + CATEGORY ===== */
+function populateLocationAndCategory(tx) {
+  const locEl = document.getElementById("analytics-location");
+  const catEl = document.getElementById("analytics-category");
+
+  const locations = [...new Set(tx.map(t => t.location).filter(Boolean))];
+  const categories = [...new Set(tx.map(t => t.category).filter(Boolean))];
+
+  locEl.innerHTML = `<option value="">All Locations</option>`;
+  locations.forEach(l => locEl.add(new Option(l,l)));
+
+  catEl.innerHTML = `<option value="">All Categories</option>`;
+  categories.forEach(c => catEl.add(new Option(c,c)));
+}
+
+/* ===== STACKED BAR ===== */
+function renderStackedChart(tx) {
+  const incomeMap = {};
+  const expenseMap = {};
+
+  tx.forEach(t => {
+    if (!t.category) return;
+    if (t.amount >= 0) {
+      incomeMap[t.category] = (incomeMap[t.category] || 0) + t.amount;
+    } else {
+      expenseMap[t.category] = (expenseMap[t.category] || 0) + Math.abs(t.amount);
+    }
+  });
+
+  const categories = [...new Set([
+    ...Object.keys(incomeMap),
+    ...Object.keys(expenseMap)
+  ])];
+
+  const datasets = categories.map(c => ({
+    label: c,
+    data: [
+      incomeMap[c] || 0,
+      expenseMap[c] || 0
+    ],
+    stack: "stack"
+  }));
+
+  const ctx = document.getElementById("analyticsChart");
+  if (ANALYTICS_CHART) ANALYTICS_CHART.destroy();
+
+  ANALYTICS_CHART = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: ["Income", "Expense"],
+      datasets
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: c => `฿${c.parsed.y.toLocaleString()}`
+          }
+        }
+      },
+      scales: {
+        x: { stacked: true },
+        y: { stacked: true }
+      }
+    }
+  });
+}
+
+/* ===== SUMMARY ===== */
+function renderSummary(tx) {
   let income = 0, expense = 0;
   tx.forEach(t=>{
     if(t.amount>=0) income+=t.amount;
@@ -208,45 +291,6 @@ function renderAnalytics() {
   document.getElementById("sum-expense").textContent = expense.toLocaleString();
   document.getElementById("sum-balance").textContent =
     (income-expense).toLocaleString();
-
-  drawChart(income, expense);
-  renderTx(tx);
-}
-
-function drawChart(income, expense) {
-  const ctx = document.getElementById("analyticsChart");
-
-  if (ANALYTICS_CHART) ANALYTICS_CHART.destroy();
-
-  ANALYTICS_CHART = new Chart(ctx,{
-    type:"bar",
-    data:{
-      labels:["Income","Expense"],
-      datasets:[{
-        data:[income,expense]
-      }]
-    },
-    options:{
-      plugins:{
-        tooltip:{
-          callbacks:{
-            label:c=>`฿${c.parsed.y.toLocaleString()}`
-          }
-        }
-      }
-    }
-  });
-}
-
-function renderTx(tx){
-  const el=document.getElementById("categoryTxList");
-  el.innerHTML="";
-  tx.forEach(t=>{
-    el.innerHTML+=`
-      <div class="tx-row">
-        ${t.date} · ${t.category} · ฿${Math.abs(t.amount).toLocaleString()}
-      </div>`;
-  });
 }
 
 
