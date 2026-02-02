@@ -19,6 +19,7 @@ if (titleEl && tx.length > 0) {
   const monthName = d.toLocaleString("en-US", { month: "long"});
   const year = d.getFullYear();
   titleEl.textContent = '${monthName} ${year} - Monthly Summary';
+}
 /* ================= RENDER TRANSACTIONS (SHARED) ================= */
 function renderTransactions(containerId, list) {
   const el = document.getElementById(containerId);
