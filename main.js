@@ -145,31 +145,43 @@ let ANALYTICS_CHART = null;
 async function initAnalytics() {
   const data = await fetchData();
   ANALYTICS_TX = data.allTransactions || [];
-  if (!ANALYTICS_TX.length) return;
 
-  initAnalyticsFilters();
+  if (ANALYTICS_TX.length === 0) return;
+
+  initAnalyticsSelectors();
   renderAnalytics();
 }
 
+
 /* ===== FILTERS ===== */
-function initAnalyticsFilters() {
-  const yEl = document.getElementById("analytics-year");
-  const mEl = document.getElementById("analytics-month");
+function initAnalyticsSelectors() {
+  const yearEl = document.getElementById("analytics-year");
+  const monthEl = document.getElementById("analytics-month");
   const locEl = document.getElementById("analytics-location");
   const catEl = document.getElementById("analytics-category");
 
   const dates = ANALYTICS_TX.map(t => new Date(t.date));
   const years = [...new Set(dates.map(d => d.getFullYear()))].sort((a,b)=>b-a);
 
-  yEl.innerHTML = "";
-  years.forEach(y => yEl.add(new Option(y,y)));
-  yEl.value = years[0];
+  yearEl.innerHTML = "";
+  years.forEach(y => yearEl.add(new Option(y, y)));
 
-  yEl.onchange = () => { updateMonths(); renderAnalytics(); };
-  mEl.onchange = renderAnalytics;
+  function updateMonths() {
+    const y = Number(yearEl.value);
+    const months = [...new Set(
+      dates.filter(d => d.getFullYear() === y).map(d => d.getMonth()+1)
+    )].sort((a,b)=>b-a);
+
+    monthEl.innerHTML = "";
+    months.forEach(m => monthEl.add(new Option(`เดือน ${m}`, m)));
+  }
+
+  yearEl.onchange = () => { updateMonths(); renderAnalytics(); };
+  monthEl.onchange = renderAnalytics;
   locEl.onchange = renderAnalytics;
   catEl.onchange = renderAnalytics;
 
+  yearEl.value = years[0];
   updateMonths();
 }
 
@@ -200,74 +212,80 @@ function renderAnalytics() {
   const loc = document.getElementById("analytics-location").value;
   const cat = document.getElementById("analytics-category").value;
 
-  const tx = ANALYTICS_TX.filter(t => {
+  let tx = ANALYTICS_TX.filter(t => {
     const d = new Date(t.date);
     return (
       d.getFullYear() === y &&
       d.getMonth()+1 === m &&
-      (!loc || t.location === loc) &&
-      (!cat || t.category === cat)
+      (!loc || t.location === loc)
     );
   });
 
-  populateLocationAndCategory(tx);
-  renderStackedChart(tx);
-  renderSummary(tx);
-  renderTransactions("categoryTxList", tx);
+  populateLocationSelector(tx);
+  populateCategorySelector(tx);
+
+  const filteredTx = cat ? tx.filter(t => t.category === cat) : tx;
+
+  renderStackedChart(filteredTx);
+  renderSummary(filteredTx);
+  renderTransactionList(filteredTx, cat);
 }
+
 
 /* ===== LOCATION + CATEGORY ===== */
-function populateLocationAndCategory(tx) {
-  const locEl = document.getElementById("analytics-location");
-  const catEl = document.getElementById("analytics-category");
+function populateLocationSelector(tx) {
+  const el = document.getElementById("analytics-location");
+  const current = el.value;
 
-  const curLoc = locEl.value;
-  const curCat = catEl.value;
+  const locs = [...new Set(tx.map(t => t.location).filter(Boolean))];
 
-  const locations = [...new Set(tx.map(t => t.location).filter(Boolean))];
-  const categories = [...new Set(tx.map(t => t.category).filter(Boolean))];
+  el.innerHTML = `<option value="">All Locations</option>`;
+  locs.forEach(l => el.add(new Option(l, l)));
 
-  locEl.innerHTML = `<option value="">All Locations</option>`;
-  locations.forEach(l => locEl.add(new Option(l,l)));
-  if (locations.includes(curLoc)) locEl.value = curLoc;
-
-  catEl.innerHTML = `<option value="">All Categories</option>`;
-  categories.forEach(c => catEl.add(new Option(c,c)));
-  if (categories.includes(curCat)) catEl.value = curCat;
+  if (locs.includes(current)) el.value = current;
 }
+
+function populateCategorySelector(tx) {
+  const el = document.getElementById("analytics-category");
+  const current = el.value;
+
+  const cats = [...new Set(tx.map(t => t.category))];
+
+  el.innerHTML = `<option value="">All Categories</option>`;
+  cats.forEach(c => el.add(new Option(c, c)));
+
+  if (cats.includes(current)) el.value = current;
+}
+
 
 /* ===== STACKED BAR ===== */
 function renderStackedChart(tx) {
+  const categories = [...new Set(tx.map(t => t.category))];
+
   const incomeMap = {};
   const expenseMap = {};
 
-  tx.forEach(t => {
-    if (!t.category) return;
-    if (t.amount >= 0) {
-      incomeMap[t.category] = (incomeMap[t.category] || 0) + t.amount;
-    } else {
-      expenseMap[t.category] = (expenseMap[t.category] || 0) + Math.abs(t.amount);
-    }
+  categories.forEach(c => {
+    incomeMap[c] = 0;
+    expenseMap[c] = 0;
   });
 
-  const categories = [...new Set([
-    ...Object.keys(incomeMap),
-    ...Object.keys(expenseMap)
-  ])];
+  tx.forEach(t => {
+    if (t.amount >= 0) incomeMap[t.category] += t.amount;
+    else expenseMap[t.category] += Math.abs(t.amount);
+  });
 
   const datasets = categories.map(c => ({
     label: c,
-    data: [
-      incomeMap[c] || 0,
-      expenseMap[c] || 0
-    ],
+    data: [incomeMap[c], expenseMap[c]],
     stack: "stack"
   }));
 
-  const ctx = document.getElementById("analyticsChart");
-  if (ANALYTICS_CHART) ANALYTICS_CHART.destroy();
+  const ctx = document.getElementById("stackedChart");
 
-  ANALYTICS_CHART = new Chart(ctx, {
+  if (STACKED_CHART) STACKED_CHART.destroy();
+
+  STACKED_CHART = new Chart(ctx, {
     type: "bar",
     data: {
       labels: ["Income", "Expense"],
@@ -275,33 +293,35 @@ function renderStackedChart(tx) {
     },
     options: {
       responsive: true,
-      plugins: {
-        tooltip: {
-          callbacks: {
-            label: c => `฿${c.parsed.y.toLocaleString()}`
-          }
-        }
-      },
       scales: {
         x: { stacked: true },
         y: { stacked: true }
+      },
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: c => `${c.dataset.label}: ฿${c.parsed.y.toLocaleString()}`
+          }
+        }
       }
     }
   });
 }
 
+
 /* ===== SUMMARY ===== */
 function renderSummary(tx) {
   let income = 0, expense = 0;
-  tx.forEach(t=>{
-    if(t.amount>=0) income+=t.amount;
-    else expense+=Math.abs(t.amount);
+
+  tx.forEach(t => {
+    if (t.amount >= 0) income += t.amount;
+    else expense += Math.abs(t.amount);
   });
 
   document.getElementById("sum-income").textContent = income.toLocaleString();
   document.getElementById("sum-expense").textContent = expense.toLocaleString();
   document.getElementById("sum-balance").textContent =
-    (income-expense).toLocaleString();
+    (income - expense).toLocaleString();
 }
 
 
