@@ -141,157 +141,96 @@ function filterTransactions() {
 let ANALYTICS_TX = [];
 let ANALYTICS_CHART = null;
 
-let LOCATION_INIT = false;
-let CATEGORY_INIT = false;
-
-/* ===== INIT ===== */
 async function initAnalytics() {
+  console.log("INIT ANALYTICS");
+
   const data = await fetchData();
   ANALYTICS_TX = data.allTransactions || [];
+
+  console.log("TX:", ANALYTICS_TX.length);
+
   if (!ANALYTICS_TX.length) return;
 
-  initAnalyticsSelectors();
+  initFilters();
   renderAnalytics();
 }
 
-/* ===== SELECTORS ===== */
-function initAnalyticsSelectors() {
-  const yearEl = document.getElementById("analytics-year");
-  const monthEl = document.getElementById("analytics-month");
-  const locEl = document.getElementById("analytics-location");
-  const catEl = document.getElementById("analytics-category");
+function initFilters() {
+  const yEl = document.getElementById("analytics-year");
+  const mEl = document.getElementById("analytics-month");
 
   const dates = ANALYTICS_TX.map(t => new Date(t.date));
   const years = [...new Set(dates.map(d => d.getFullYear()))].sort((a,b)=>b-a);
 
-  yearEl.innerHTML = "";
-  years.forEach(y => yearEl.add(new Option(y, y)));
-  yearEl.value = years[0];
+  yEl.innerHTML = "";
+  years.forEach(y => yEl.add(new Option(y,y)));
+  yEl.value = years[0];
 
-  function updateMonths() {
-    const y = Number(yearEl.value);
-    const months = [...new Set(
-      dates.filter(d => d.getFullYear() === y).map(d => d.getMonth()+1)
-    )].sort((a,b)=>b-a);
-
-    monthEl.innerHTML = "";
-    months.forEach(m => monthEl.add(new Option(`เดือน ${m}`, m)));
-    monthEl.value = months[0];
-  }
-
-  updateMonths();
-
-  yearEl.onchange = () => {
-    LOCATION_INIT = false;
-    CATEGORY_INIT = false;
+  yEl.onchange = () => {
     updateMonths();
     renderAnalytics();
   };
+  mEl.onchange = renderAnalytics;
 
-  monthEl.onchange = () => {
-    LOCATION_INIT = false;
-    CATEGORY_INIT = false;
-    renderAnalytics();
-  };
-
-  locEl.onchange = renderAnalytics;
-  catEl.onchange = renderAnalytics;
+  updateMonths();
 }
 
-/* ===== MAIN RENDER ===== */
+function updateMonths() {
+  const y = Number(document.getElementById("analytics-year").value);
+  const mEl = document.getElementById("analytics-month");
+
+  const months = [...new Set(
+    ANALYTICS_TX
+      .filter(t => new Date(t.date).getFullYear() === y)
+      .map(t => new Date(t.date).getMonth()+1)
+  )].sort((a,b)=>b-a);
+
+  mEl.innerHTML = "";
+  months.forEach(m => mEl.add(new Option(`เดือน ${m}`, m)));
+}
+
 function renderAnalytics() {
   const y = Number(document.getElementById("analytics-year").value);
   const m = Number(document.getElementById("analytics-month").value);
-  const loc = document.getElementById("analytics-location").value;
-  const cat = document.getElementById("analytics-category").value;
 
-  const monthTx = ANALYTICS_TX.filter(t => {
+  const tx = ANALYTICS_TX.filter(t => {
     const d = new Date(t.date);
-    return (
-      d.getFullYear() === y &&
-      d.getMonth()+1 === m &&
-      (!loc || t.location === loc)
-    );
+    return d.getFullYear()===y && d.getMonth()+1===m;
   });
 
-  initLocationSelector(monthTx);
-  initCategorySelector(monthTx);
-
-  renderStackedBarChart(monthTx, cat);
-  renderSummary(monthTx);
-
-  const listTx = cat
-    ? monthTx.filter(t => t.category === cat)
-    : monthTx;
-
-  renderTransactionList(listTx, cat);
-}
-
-/* ===== LOCATION SELECT ===== */
-function initLocationSelector(tx) {
-  if (LOCATION_INIT) return;
-  LOCATION_INIT = true;
-
-  const locEl = document.getElementById("analytics-location");
-  const locations = [...new Set(tx.map(t => t.location).filter(Boolean))];
-
-  locEl.innerHTML = `<option value="">All Locations</option>`;
-  locations.forEach(l => locEl.add(new Option(l, l)));
-}
-
-/* ===== CATEGORY SELECT ===== */
-function initCategorySelector(tx) {
-  if (CATEGORY_INIT) return;
-  CATEGORY_INIT = true;
-
-  const catEl = document.getElementById("analytics-category");
-  const categories = [...new Set(tx.map(t => t.category).filter(Boolean))];
-
-  catEl.innerHTML = `<option value="">All Categories</option>`;
-  categories.forEach(c => catEl.add(new Option(c, c)));
-}
-
-/* ===== STACKED BAR CHART ===== */
-function renderStackedBarChart(tx, selectedCategory = "") {
-  const map = {};
-
-  tx.forEach(t => {
-    if (!map[t.category]) {
-      map[t.category] = { income: 0, expense: 0 };
-    }
-    if (t.amount >= 0) map[t.category].income += t.amount;
-    else map[t.category].expense += Math.abs(t.amount);
+  let income = 0, expense = 0;
+  tx.forEach(t=>{
+    if(t.amount>=0) income+=t.amount;
+    else expense+=Math.abs(t.amount);
   });
 
-  const labels = selectedCategory
-    ? [selectedCategory]
-    : Object.keys(map);
+  document.getElementById("sum-income").textContent = income.toLocaleString();
+  document.getElementById("sum-expense").textContent = expense.toLocaleString();
+  document.getElementById("sum-balance").textContent =
+    (income-expense).toLocaleString();
 
-  const incomeData = labels.map(c => map[c]?.income || 0);
-  const expenseData = labels.map(c => map[c]?.expense || 0);
+  drawChart(income, expense);
+  renderTx(tx);
+}
 
+function drawChart(income, expense) {
   const ctx = document.getElementById("analyticsChart");
+
   if (ANALYTICS_CHART) ANALYTICS_CHART.destroy();
 
-  ANALYTICS_CHART = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels,
-      datasets: [
-        { label: "Income", data: incomeData, stack: "total" },
-        { label: "Expense", data: expenseData, stack: "total" }
-      ]
+  ANALYTICS_CHART = new Chart(ctx,{
+    type:"bar",
+    data:{
+      labels:["Income","Expense"],
+      datasets:[{
+        data:[income,expense]
+      }]
     },
-    options: {
-      responsive: true,
-      scales: {
-        x: { stacked: true },
-        y: { stacked: true }
-      },
-      plugins: {
-        tooltip: {
-          callbacks: {
-            label: c => `฿${c.parsed.y.toLocaleString()}`
+    options:{
+      plugins:{
+        tooltip:{
+          callbacks:{
+            label:c=>`฿${c.parsed.y.toLocaleString()}`
           }
         }
       }
@@ -299,53 +238,14 @@ function renderStackedBarChart(tx, selectedCategory = "") {
   });
 }
 
-/* ===== SUMMARY ===== */
-function renderSummary(tx) {
-  let income = 0, expense = 0;
-
-  tx.forEach(t => {
-    if (t.amount >= 0) income += t.amount;
-    else expense += Math.abs(t.amount);
-  });
-
-  document.getElementById("sum-income").textContent =
-    `฿${income.toLocaleString()}`;
-  document.getElementById("sum-expense").textContent =
-    `฿${expense.toLocaleString()}`;
-  document.getElementById("sum-balance").textContent =
-    `฿${(income - expense).toLocaleString()}`;
-}
-
-/* ===== TRANSACTION LIST ===== */
-function renderTransactionList(tx, category) {
-  const el = document.getElementById("categoryTxList");
-  const title = document.getElementById("categoryTitle");
-
-  el.innerHTML = "";
-  title.textContent = category
-    ? `Transactions: ${category}`
-    : "Transactions";
-
-  if (!tx.length) {
-    el.innerHTML = "<p>ไม่มีข้อมูล</p>";
-    return;
-  }
-
-  tx.forEach(t => {
-    const div = document.createElement("div");
-    div.className = "tx-row";
-    div.innerHTML = `
-      <div class="tx-top">
-        <span class="tx-date">${t.date}</span>
-        <span class="tx-amount ${t.amount>=0?'tx-plus':'tx-minus'}">
-          ฿${Math.abs(t.amount).toLocaleString()}
-        </span>
-      </div>
-      <div class="tx-desc">
-        ${t.category} · ${t.location || ""} ${t.description ? "· "+t.description : ""}
-      </div>
-    `;
-    el.appendChild(div);
+function renderTx(tx){
+  const el=document.getElementById("categoryTxList");
+  el.innerHTML="";
+  tx.forEach(t=>{
+    el.innerHTML+=`
+      <div class="tx-row">
+        ${t.date} · ${t.category} · ฿${Math.abs(t.amount).toLocaleString()}
+      </div>`;
   });
 }
 
