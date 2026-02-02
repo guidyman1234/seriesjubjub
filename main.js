@@ -140,7 +140,7 @@ function filterTransactions() {
 /* ================= ANALYTICS ================= */
 /* ================= ANALYTICS ================= */
 let ANALYTICS_TX = [];
-let ANALYTICS_CHART = null;
+let STACKED_CHART = null;
 
 async function initAnalytics() {
   const data = await fetchData();
@@ -228,7 +228,7 @@ function renderAnalytics() {
 
   renderStackedChart(filteredTx);
   renderSummary(filteredTx);
-  renderTransactionList(filteredTx, cat);
+  renderTransactions("categoryTxList", filteredTx); // ✅ แก้ตรงนี้
 }
 
 
