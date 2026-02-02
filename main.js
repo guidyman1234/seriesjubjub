@@ -12,7 +12,13 @@ async function fetchData() {
     throw e;
   }
 }
-
+/* =============== SET MONTH TITLE =============== */
+const titleEl = document.getElementById("homeMonthTitle");
+if (titleEl && tx.length > 0) {
+  const d = new Date(tx[0].date);
+  const monthName = d.toLocaleString("en-US", { month: "long"});
+  const year = d.getFullYear();
+  titleEl.textContent = '${monthName} ${year} - Monthly Summary';
 /* ================= RENDER TRANSACTIONS (SHARED) ================= */
 function renderTransactions(containerId, list) {
   const el = document.getElementById(containerId);
