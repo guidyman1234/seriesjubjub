@@ -11,7 +11,7 @@ async function fetchData() {
     alert("API ERROR: " + e.message);
     throw e;
   }
-
+}
 /* ================= RENDER TRANSACTIONS (SHARED) ================= */
 function renderTransactions(containerId, list) {
   const el = document.getElementById(containerId);
@@ -290,7 +290,7 @@ function renderStackedChart(tx) {
     stack: "stack"
   }));
 
-  const ctx = document.getElementById("stackedChart");
+  const ctx = document.getElementById("analyticsChart");
 
   if (STACKED_CHART) STACKED_CHART.destroy();
 
