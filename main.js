@@ -11,8 +11,7 @@ async function fetchData() {
     alert("API ERROR: " + e.message);
     throw e;
   }
-}
-/* =============== SET MONTH TITLE =============== */
+  /* =============== SET MONTH TITLE =============== */
 const titleEl = document.getElementById("homeMonthTitle");
 if (titleEl && tx.length > 0) {
   const d = new Date(tx[0].date);
@@ -20,6 +19,7 @@ if (titleEl && tx.length > 0) {
   const year = d.getFullYear();
   titleEl.textContent = '${monthName} ${year} - Monthly Summary';
 }
+
 /* ================= RENDER TRANSACTIONS (SHARED) ================= */
 function renderTransactions(containerId, list) {
   const el = document.getElementById(containerId);
