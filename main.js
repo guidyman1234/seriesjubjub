@@ -11,14 +11,6 @@ async function fetchData() {
     alert("API ERROR: " + e.message);
     throw e;
   }
-  /* =============== SET MONTH TITLE =============== */
-const titleEl = document.getElementById("homeMonthTitle");
-if (titleEl && tx.length > 0) {
-  const d = new Date(tx[0].date);
-  const monthName = d.toLocaleString("en-US", { month: "long"});
-  const year = d.getFullYear();
-  titleEl.textContent = '${monthName} ${year} - Monthly Summary';
-}
 
 /* ================= RENDER TRANSACTIONS (SHARED) ================= */
 function renderTransactions(containerId, list) {
@@ -56,7 +48,15 @@ function renderTransactions(containerId, list) {
 /* ================= HOME ================= */
 async function initHome() {
   const data = await fetchData();
-  const tx = data.allTransactions || [];
+  const all = data.allTransactions || [];
+  /* =============== SET MONTH TITLE =============== */
+const titleEl = document.getElementById("homeMonthTitle");
+if (titleEl && tx.length > 0) {
+  const d = new Date(tx[0].date);
+  const monthName = d.toLocaleString("en-US", { month: "long"});
+  const year = d.getFullYear();
+  titleEl.textContent = '${monthName} ${year} - Monthly Summary';
+}
 
   const lastBal =
     data.cumulative?.[data.cumulative.length - 1]?.balance || 0;
