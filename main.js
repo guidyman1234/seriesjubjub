@@ -59,16 +59,16 @@ async function initHome() {
 
   if (tx.length === 0) return;
 
-  const latestDate = new Date(tx[0].date);
-  const latestMonth = latestDate.getMonth() + 1;
-  const latestYear = latestDate.getFullYear();
+  const today = new Date();
+  const currentMonth = today.getMonth() + 1;
+  const currentYear = today.getFullYear();
 
   let income = 0;
   let expense = 0;
 
   tx.forEach(t => {
     const d = new Date(t.date);
-    if (d.getMonth() + 1 === latestMonth && d.getFullYear() === latestYear) {
+    if (d.getMonth() + 1 === currentMonth && d.getFullYear() === currentYear) {
       if (t.amount >= 0) income += t.amount;
       else expense += Math.abs(t.amount);
     }
