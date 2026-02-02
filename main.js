@@ -331,6 +331,14 @@ function renderSummary(tx) {
   document.getElementById("sum-expense").textContent = expense.toLocaleString();
   document.getElementById("sum-balance").textContent =
     (income - expense).toLocaleString();
+
+ // 🔥 ใต้กราฟ
+  const incEl = document.getElementById("analyticsIncome");
+  const expEl = document.getElementById("analyticsExpense");
+
+  if (incEl) incEl.textContent = "฿" + income.toLocaleString();
+  if (expEl) expEl.textContent = "฿" + expense.toLocaleString();
+
 }
 
 
