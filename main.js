@@ -185,7 +185,13 @@ function updateMonths() {
 
   mEl.innerHTML = "";
   months.forEach(m => mEl.add(new Option(`เดือน ${m}`, m)));
+
+  // ✅ สำคัญมาก
+  if (months.length) {
+    mEl.value = months[0];
+  }
 }
+
 
 /* ===== MAIN RENDER ===== */
 function renderAnalytics() {
@@ -215,14 +221,19 @@ function populateLocationAndCategory(tx) {
   const locEl = document.getElementById("analytics-location");
   const catEl = document.getElementById("analytics-category");
 
+  const curLoc = locEl.value;
+  const curCat = catEl.value;
+
   const locations = [...new Set(tx.map(t => t.location).filter(Boolean))];
   const categories = [...new Set(tx.map(t => t.category).filter(Boolean))];
 
   locEl.innerHTML = `<option value="">All Locations</option>`;
   locations.forEach(l => locEl.add(new Option(l,l)));
+  if (locations.includes(curLoc)) locEl.value = curLoc;
 
   catEl.innerHTML = `<option value="">All Categories</option>`;
   categories.forEach(c => catEl.add(new Option(c,c)));
+  if (categories.includes(curCat)) catEl.value = curCat;
 }
 
 /* ===== STACKED BAR ===== */
