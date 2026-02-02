@@ -49,14 +49,15 @@ function renderTransactions(containerId, list) {
 async function initHome() {
   const data = await fetchData();
   const all = data.allTransactions || [];
-  /* =============== SET MONTH TITLE =============== */
-const titleEl = document.getElementById("homeMonthTitle");
-if (titleEl && tx.length > 0) {
-  const d = new Date(tx[0].date);
-  const monthName = d.toLocaleString("en-US", { month: "long"});
-  const year = d.getFullYear();
-  titleEl.textContent = '${monthName} ${year} - Monthly Summary';
-}
+
+  /* ===== SET MONTH TITLE ===== */
+  const titleEl = document.getElementById("homeMonthTitle");
+  if (titleEl && all.length > 0) {
+    const d = new Date(all[0].date);
+    const monthName = d.toLocaleString("en-US", { month: "long" });
+    const year = d.getFullYear();
+    titleEl.textContent = `${monthName} ${year} - Monthly Summary`;
+  }
 
   const lastBal =
     data.cumulative?.[data.cumulative.length - 1]?.balance || 0;
@@ -64,7 +65,7 @@ if (titleEl && tx.length > 0) {
   const balEl = document.getElementById("cumulative-balance");
   if (balEl) balEl.textContent = "฿" + lastBal.toLocaleString();
 
-  if (tx.length === 0) return;
+  if (all.length === 0) return;
 
   const today = new Date();
   const currentMonth = today.getMonth() + 1;
@@ -73,7 +74,7 @@ if (titleEl && tx.length > 0) {
   let income = 0;
   let expense = 0;
 
-  tx.forEach(t => {
+  all.forEach(t => {
     const d = new Date(t.date);
     if (d.getMonth() + 1 === currentMonth && d.getFullYear() === currentYear) {
       if (t.amount >= 0) income += t.amount;
@@ -88,8 +89,9 @@ if (titleEl && tx.length > 0) {
   document.getElementById("monthly-balance").textContent =
     "฿" + (income - expense).toLocaleString();
 
-  renderTransactions("transaction-list", tx.slice(0, 20));
+  renderTransactions("transaction-list", all.slice(0, 20));
 }
+
 
 /* ================= TRANSACTIONS PAGE ================= */
 let ALL_TX = [];
