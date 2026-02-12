@@ -58,10 +58,6 @@ async function initHome() {
     const year = d.getFullYear();
     titleEl.textContent = `${monthName} ${year} - Monthly Summary`;
   }
-
-  const lastBal =
-    data.cumulative?.[data.cumulative.length - 1]?.balance || 0;
-
   const balEl = document.getElementById("cumulative-balance");
   if (balEl) balEl.textContent = "฿" + lastBal.toLocaleString();
 
@@ -77,8 +73,8 @@ async function initHome() {
   all.forEach(t => {
     const d = new Date(t.date);
     if (d.getMonth() + 1 === currentMonth && d.getFullYear() === currentYear) {
-      if (t.amount >= 0) income += t.amount;
-      else expense += Math.abs(t.amount);
+      if (Number(t.amount) >= 0) income += Number(t.amount);
+      else expense += Math.abs(Number(t.amount));
     }
   });
 
